@@ -3,20 +3,27 @@ import { format } from 'date-fns'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import db from '../lib/instantdb'
 import PDFDocument from './PDFDocument'
+import { useModal } from '../contexts/ModalContext'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ invoices: {} })
+  const { showAlert, showConfirm } = useModal()
 
   const deleteInvoice = async (id) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
+    const confirmed = await showConfirm(
+      'Delete Invoice',
+      'Are you sure you want to delete this invoice? This action cannot be undone.'
+    )
+    if (confirmed) {
       try {
         await db.transact([
           db.tx.invoices[id].delete()
         ])
+        showAlert('Success', 'Invoice deleted successfully.', 'success')
       } catch (error) {
         console.error('Error deleting invoice:', error)
-        alert('Error deleting invoice. Please try again.')
+        showAlert('Error', 'Error deleting invoice. Please try again.', 'error')
       }
     }
   }
@@ -90,64 +97,62 @@ const InvoiceList = () => {
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">All Invoices</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">All Invoices</h1>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-primary text-white rounded-md hover:bg-blue-700 font-semibold"
+            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
           >
             Create New Invoice
           </button>
         </div>
 
         {invoices.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-600 text-lg mb-4">No invoices yet</p>
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <p className="text-gray-600 text-base mb-4">No invoices yet</p>
             <button
               onClick={() => navigate('/')}
-              className="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
             >
               Create Your First Invoice
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-800 text-white">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-4">Invoice #</th>
-                  <th className="text-left py-3 px-4">Type</th>
-                  <th className="text-left py-3 px-4">Date</th>
-                  <th className="text-left py-3 px-4">Client Name</th>
-                  <th className="text-right py-3 px-4">Total</th>
-                  <th className="text-center py-3 px-4">Actions</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Invoice #</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Type</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Date</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Client</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-600 uppercase">Total</th>
+                  <th className="text-center py-3 px-4 text-xs font-medium text-gray-600 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
                   <tr
                     key={invoice.id}
-                    className="border-b border-gray-200 hover:bg-gray-50"
+                    className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/edit/${invoice.id}`)}
                   >
-                    <td 
-                      className="py-3 px-4 font-medium cursor-pointer hover:text-primary"
-                      onClick={() => navigate(`/edit/${invoice.id}`)}
-                    >
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900">
                       {invoice.invoiceNumber || 'N/A'}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${
                         invoice.documentType === 'proforma' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-gray-100 text-gray-700' 
+                          : 'bg-gray-900 text-white'
                       }`}>
                         {invoice.documentType === 'proforma' ? 'Proforma' : 'Invoice'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-600">
+                    <td className="py-3 px-4 text-sm text-gray-600">
                       {invoice.date ? format(new Date(invoice.date), 'dd/MM/yyyy') : 'N/A'}
                     </td>
-                    <td className="py-3 px-4">{invoice.to?.name || 'N/A'}</td>
-                    <td className="py-3 px-4 text-right font-semibold">
+                    <td className="py-3 px-4 text-sm text-gray-900">{invoice.to?.name || 'N/A'}</td>
+                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">
                       {formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
                     </td>
                     <td className="py-3 px-4">
@@ -155,7 +160,7 @@ const InvoiceList = () => {
                         <PDFDownloadLink
                           document={<PDFDocument invoice={invoice} totals={calculateTotals(invoice)} />}
                           fileName={generatePDFFilename(invoice)}
-                          className="px-3 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded font-medium text-sm"
+                          className="px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {({ loading }) => (loading ? 'Loading...' : 'PDF')}
@@ -165,7 +170,7 @@ const InvoiceList = () => {
                             e.stopPropagation()
                             deleteInvoice(invoice.id)
                           }}
-                          className="px-3 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded font-medium text-sm"
+                          className="px-3 py-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium text-xs transition-colors"
                         >
                           Delete
                         </button>

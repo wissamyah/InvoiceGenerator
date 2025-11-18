@@ -12,7 +12,11 @@ if (!APP_ID) {
 // Initialize Instant DB
 // Note: Instant DB creates tables automatically when you first write data
 // Schema can be defined in the Instant DB dashboard if needed
-const db = init({ appId: APP_ID });
+// devtool: false disables the floating devtool icon in the bottom left
+const db = init({
+  appId: APP_ID,
+  devtool: false,
+});
 
 export { id };
 export default db;
