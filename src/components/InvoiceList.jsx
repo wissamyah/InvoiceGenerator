@@ -8,14 +8,14 @@ import { useModal } from '../contexts/ModalContext'
 const InvoiceList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ invoices: {} })
-  const { showAlert, showConfirm } = useModal()
+  const { showAlert, showPasswordPrompt } = useModal()
 
   const deleteInvoice = async (id) => {
-    const confirmed = await showConfirm(
+    const password = await showPasswordPrompt(
       'Delete Invoice',
-      'Are you sure you want to delete this invoice? This action cannot be undone.'
+      'Enter password to confirm deletion:'
     )
-    if (confirmed) {
+    if (password === 'ADMIN') {
       try {
         await db.transact([
           db.tx.invoices[id].delete()
@@ -25,6 +25,8 @@ const InvoiceList = () => {
         console.error('Error deleting invoice:', error)
         showAlert('Error', 'Error deleting invoice. Please try again.', 'error')
       }
+    } else if (password) {
+      showAlert('Error', 'Incorrect password.', 'error')
     }
   }
 

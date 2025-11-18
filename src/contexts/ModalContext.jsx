@@ -49,6 +49,21 @@ export const ModalProvider = ({ children }) => {
     })
   }
 
+  const showPasswordPrompt = (title, message) => {
+    return new Promise((resolve) => {
+      setModal({
+        isOpen: true,
+        title,
+        message,
+        type: 'password',
+        onConfirm: (password) => {
+          closeModal()
+          resolve(password)
+        }
+      })
+    })
+  }
+
   const handleClose = () => {
     if (modal.type === 'confirm' && modal.onConfirm) {
       // User cancelled the confirm dialog
@@ -59,7 +74,7 @@ export const ModalProvider = ({ children }) => {
   }
 
   return (
-    <ModalContext.Provider value={{ showAlert, showConfirm }}>
+    <ModalContext.Provider value={{ showAlert, showConfirm, showPasswordPrompt }}>
       {children}
       <Modal
         isOpen={modal.isOpen}
