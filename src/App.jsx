@@ -37,12 +37,12 @@ function Navigation() {
 
   return (
     <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex space-x-1">
           <Link
             to="/"
             onClick={(e) => handleNavClick(e, '/')}
-            className={`py-3 px-4 font-medium text-sm transition-colors ${
+            className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
               isEditorActive
                 ? 'text-gray-900 border-b-2 border-gray-900'
                 : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
@@ -53,7 +53,7 @@ function Navigation() {
           <Link
             to="/invoices"
             onClick={(e) => handleNavClick(e, '/invoices')}
-            className={`py-3 px-4 font-medium text-sm transition-colors ${
+            className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
               isListActive
                 ? 'text-gray-900 border-b-2 border-gray-900'
                 : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'

@@ -269,16 +269,16 @@ const InvoiceEditor = () => {
   }
 
   return (
-    <div className="flex gap-6 p-6 h-screen max-h-screen overflow-hidden">
+    <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-6 md:h-screen md:max-h-screen md:overflow-hidden">
       {/* Live Preview - Left Side */}
-      <div className="w-1/2 h-full bg-white shadow-lg rounded-lg p-8 overflow-y-auto print-preview custom-scrollbar">
+      <div className="w-full md:w-1/2 md:h-full bg-white shadow-lg rounded-lg p-4 md:p-8 overflow-y-auto print-preview custom-scrollbar max-h-[500px] md:max-h-full">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="border-b-2 border-gray-800 pb-4 mb-6 flex justify-between items-start">
-            <h1 className="text-4xl font-bold text-gray-900">
+          <div className="border-b-2 border-gray-800 pb-3 md:pb-4 mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
               {invoice.documentType === 'proforma' ? 'PROFORMA INVOICE' : 'INVOICE'}
             </h1>
-            <div className="text-right text-sm">
+            <div className="text-left sm:text-right text-sm">
               <div className="text-gray-500 text-xs uppercase tracking-wide mb-1">
                 {invoice.documentType === 'proforma' ? 'Proforma Invoice Details' : 'Invoice Details'}
               </div>
@@ -288,10 +288,10 @@ const InvoiceEditor = () => {
           </div>
 
           {/* From/To Section */}
-          <div className="grid grid-cols-2 gap-8 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-4 md:mb-6">
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">From:</h3>
-              <div className="text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">From:</h3>
+              <div className="text-xs md:text-sm text-gray-700">
                 <p className="font-medium">{invoice.from.name || 'Your Company Name'}</p>
                 <p>{invoice.from.address || 'Your Address'}</p>
                 <p>{invoice.from.email || 'your@email.com'}</p>
@@ -302,8 +302,8 @@ const InvoiceEditor = () => {
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">To:</h3>
-              <div className="text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">To:</h3>
+              <div className="text-xs md:text-sm text-gray-700">
                 <p className="font-medium">{invoice.to.name || 'Client Name'}</p>
                 <p>{invoice.to.address || 'Client Address'}</p>
                 <p>{invoice.to.email || 'client@email.com'}</p>
@@ -314,25 +314,25 @@ const InvoiceEditor = () => {
           </div>
 
           {/* Line Items Table */}
-          <div className="mb-6">
-            <table className="w-full text-sm">
+          <div className="mb-4 md:mb-6 overflow-x-auto">
+            <table className="w-full text-xs md:text-sm">
               <thead>
                 <tr className="bg-gray-800 text-white">
-                  <th className="text-left py-2 px-3">Description</th>
-                  <th className="text-right py-2 px-3">Qty</th>
-                  <th className="text-right py-2 px-3">Unit</th>
-                  <th className="text-right py-2 px-3">Rate</th>
-                  <th className="text-right py-2 px-3">Amount</th>
+                  <th className="text-left py-2 px-2 md:px-3">Description</th>
+                  <th className="text-right py-2 px-2 md:px-3">Qty</th>
+                  <th className="text-right py-2 px-2 md:px-3">Unit</th>
+                  <th className="text-right py-2 px-2 md:px-3">Rate</th>
+                  <th className="text-right py-2 px-2 md:px-3">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.lineItems.map((item, index) => (
                   <tr key={index} className="border-b border-gray-200">
-                    <td className="py-2 px-3">{item.description || '-'}</td>
-                    <td className="text-right py-2 px-3">{item.quantity || 0}</td>
-                    <td className="text-right py-2 px-3">{item.unit === 'None' ? '' : item.unit}</td>
-                    <td className="text-right py-2 px-3">{formatCurrency(item.rate)}</td>
-                    <td className="text-right py-2 px-3">{formatCurrency(item.amount)}</td>
+                    <td className="py-2 px-2 md:px-3">{item.description || '-'}</td>
+                    <td className="text-right py-2 px-2 md:px-3">{item.quantity || 0}</td>
+                    <td className="text-right py-2 px-2 md:px-3">{item.unit === 'None' ? '' : item.unit}</td>
+                    <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.rate)}</td>
+                    <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -340,19 +340,19 @@ const InvoiceEditor = () => {
           </div>
 
           {/* Totals */}
-          <div className="flex justify-end mb-6">
-            <div className="w-64">
-              <div className="flex justify-between py-2 text-sm">
+          <div className="flex justify-end mb-4 md:mb-6">
+            <div className="w-full sm:w-64">
+              <div className="flex justify-between py-2 text-xs md:text-sm">
                 <span className="text-gray-600">Subtotal:</span>
                 <span className="font-semibold">{formatCurrency(subtotal)}</span>
               </div>
               {invoice.vatEnabled && (
-                <div className="flex justify-between py-2 text-sm">
+                <div className="flex justify-between py-2 text-xs md:text-sm">
                   <span className="text-gray-600">VAT ({invoice.vatRate}%):</span>
                   <span className="font-semibold">{formatCurrency(vatAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between py-2 border-t-2 border-gray-800 font-bold text-lg">
+              <div className="flex justify-between py-2 border-t-2 border-gray-800 font-bold text-base md:text-lg">
                 <span>Total {invoice.shippingType}:</span>
                 <span>{formatCurrency(total)}</span>
               </div>
@@ -361,15 +361,15 @@ const InvoiceEditor = () => {
 
           {/* Notes */}
           {invoice.notes && (
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Notes:</h3>
-              <p className="text-sm text-gray-700 whitespace-pre-line">{invoice.notes}</p>
+            <div className="mb-4 md:mb-6">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Notes:</h3>
+              <p className="text-xs md:text-sm text-gray-700 whitespace-pre-line">{invoice.notes}</p>
             </div>
           )}
 
           {/* Bank Details */}
-          <div className="border-t pt-4 text-sm text-gray-700">
-            <h3 className="font-semibold text-gray-900 mb-2">Bank Details:</h3>
+          <div className="border-t pt-4 text-xs md:text-sm text-gray-700">
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Bank Details:</h3>
             {invoice.bankDetails.bankName && <p>Bank: {invoice.bankDetails.bankName}</p>}
             <p>Account Name: {invoice.bankDetails.accountName || 'N/A'}</p>
             <p>IBAN: {invoice.bankDetails.iban || 'N/A'}</p>
@@ -379,32 +379,32 @@ const InvoiceEditor = () => {
       </div>
 
       {/* Editing Form - Right Side */}
-      <div className="w-1/2 h-full overflow-y-auto bg-gray-50 rounded-lg shadow-lg custom-scrollbar">
+      <div className="w-full md:w-1/2 md:h-full overflow-y-auto bg-gray-50 rounded-lg shadow-lg custom-scrollbar">
         {/* Header */}
         <div className="bg-white border-b sticky top-0 z-10 rounded-t-lg">
-          <div className="px-8 py-5 flex items-center justify-between">
+          <div className="px-4 md:px-8 py-4 md:py-5 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900">
                 {id ? 'Edit Invoice' : 'Create Invoice'}
               </h2>
-              <p className="text-gray-500 text-sm mt-0.5">Fill in the details below</p>
+              <p className="text-gray-500 text-xs md:text-sm mt-0.5">Fill in the details below</p>
             </div>
             {hasUnsavedChanges && (
-              <div className="flex items-center gap-2 text-amber-600 text-sm font-medium">
+              <div className="flex items-center gap-2 text-amber-600 text-xs md:text-sm font-medium">
                 <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                Unsaved
+                <span className="hidden sm:inline">Unsaved</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="px-8 pt-6 pb-0 space-y-5">
+        <div className="px-4 md:px-8 pt-4 md:pt-6 pb-0 space-y-4 md:space-y-5">
           {/* Invoice Metadata */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">Invoice Details</h3>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-4 md:p-5 space-y-3 md:space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">Document Type</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -431,7 +431,7 @@ const InvoiceEditor = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     {invoice.documentType === 'proforma' ? 'Proforma Number' : 'Invoice Number'}
@@ -455,7 +455,7 @@ const InvoiceEditor = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-2">Currency</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -512,10 +512,10 @@ const InvoiceEditor = () => {
 
           {/* From Section */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">From (Your Company)</h3>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-4 md:p-5 space-y-3">
               <input
                 type="text"
                 value={invoice.from.name}
@@ -530,7 +530,7 @@ const InvoiceEditor = () => {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
                 placeholder="Full Address"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="email"
                   value={invoice.from.email}
@@ -553,7 +553,7 @@ const InvoiceEditor = () => {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
                 placeholder="Country"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">P.IVA</label>
                   <input
@@ -580,10 +580,10 @@ const InvoiceEditor = () => {
 
           {/* To Section */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">Bill To (Client)</h3>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-4 md:p-5 space-y-3">
               <input
                 type="text"
                 value={invoice.to.name}
@@ -598,7 +598,7 @@ const InvoiceEditor = () => {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
                 placeholder="Full Address"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="email"
                   value={invoice.to.email}
@@ -626,7 +626,7 @@ const InvoiceEditor = () => {
 
           {/* Line Items */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-sm font-medium text-gray-900">Line Items</h3>
               <button
                 onClick={addLineItem}
@@ -635,7 +635,7 @@ const InvoiceEditor = () => {
                 + Add
               </button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-4 md:p-5 space-y-3">
               {invoice.lineItems.map((item, index) => (
                 <div key={index} className="relative border border-gray-200 rounded-md p-3 bg-gray-50 group">
                   {/* Floating Delete Button - Only visible on hover */}
@@ -659,7 +659,7 @@ const InvoiceEditor = () => {
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
                       placeholder="Item description"
                     />
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">Qty</label>
                         <input
@@ -711,10 +711,10 @@ const InvoiceEditor = () => {
 
           {/* VAT Settings */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">Tax Settings</h3>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-4 md:p-5 space-y-3">
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -742,10 +742,10 @@ const InvoiceEditor = () => {
 
           {/* Notes */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">Additional Notes</h3>
             </div>
-            <div className="p-5">
+            <div className="p-4 md:p-5">
               <textarea
                 value={invoice.notes}
                 onChange={(e) => setInvoice({ ...invoice, notes: e.target.value })}
@@ -758,10 +758,10 @@ const InvoiceEditor = () => {
 
           {/* Bank Details */}
           <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-5 py-3.5 border-b border-gray-100">
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">Payment Information</h3>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-4 md:p-5 space-y-3">
               <input
                 type="text"
                 value={invoice.bankDetails.bankName}
@@ -794,8 +794,8 @@ const InvoiceEditor = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="sticky bottom-0 bg-white border-t p-5 -mx-8 mt-5 rounded-b-lg">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="sticky bottom-0 bg-white border-t p-4 md:p-5 -mx-4 md:-mx-8 mt-4 md:mt-5 rounded-b-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={saveInvoice}
                 className="px-4 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"

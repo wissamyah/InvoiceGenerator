@@ -20,7 +20,7 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, type = 'confirm' })
   const isError = type === 'error'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 animate-fadeIn">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-sm"
@@ -30,8 +30,8 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, type = 'confirm' })
       {/* Modal */}
       <div className="relative bg-white rounded-lg shadow-2xl max-w-md w-full animate-slideUp">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4">
-          <div className="flex items-start gap-3">
+        <div className="px-4 md:px-6 pt-5 md:pt-6 pb-3 md:pb-4">
+          <div className="flex items-start gap-2.5 md:gap-3">
             {/* Icon */}
             <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
               isSuccess ? 'bg-green-100' :
@@ -63,10 +63,10 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, type = 'confirm' })
             
             {/* Title and Message */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1">
                 {title}
               </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
                 {message}
               </p>
             </div>
@@ -74,7 +74,7 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, type = 'confirm' })
         </div>
 
         {/* Actions */}
-        <div className="px-6 pb-6 pt-2 flex gap-3 justify-end">
+        <div className="px-4 md:px-6 pb-5 md:pb-6 pt-2 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
           {isConfirm ? (
             <>
               <button
