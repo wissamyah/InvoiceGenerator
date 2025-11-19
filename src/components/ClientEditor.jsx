@@ -7,11 +7,13 @@ import { useModal } from '../contexts/ModalContext'
 const ClientEditor = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data } = db.useQuery({ clients: {} })
+  const { data } = db.useQuery({ clients: {}, suppliers: {}, clientSupplierLicenses: {} })
   const initialClientRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
   const { showAlert, showConfirm } = useModal()
   const [isLoaded, setIsLoaded] = useState(false)
+  const [expandedSuppliers, setExpandedSuppliers] = useState({})
+  const [newLicenseInputs, setNewLicenseInputs] = useState({})
 
   const [client, setClient] = useState({
     name: '',
@@ -19,8 +21,7 @@ const ClientEditor = () => {
     city: '',
     country: '',
     email: '',
-    phone: '',
-    licenseNumber: ''
+    phone: ''
   })
 
   useEffect(() => {
@@ -98,6 +99,85 @@ const ClientEditor = () => {
     navigate('/inspection/clients')
   }
 
+  // License management functions
+  const suppliers = data?.suppliers || []
+  const clientSupplierLicenses = data?.clientSupplierLicenses || []
+  
+  const getLicensesForSupplier = (supplierId) => {
+    return clientSupplierLicenses.filter(
+      license => license.clientId === id && license.supplierId === supplierId
+    )
+  }
+
+  const toggleSupplierExpanded = (supplierId) => {
+    setExpandedSuppliers(prev => ({
+      ...prev,
+      [supplierId]: !prev[supplierId]
+    }))
+  }
+
+  const handleAddLicense = async (supplierId) => {
+    const licenseNumber = newLicenseInputs[supplierId]?.trim()
+    
+    if (!licenseNumber) {
+      showAlert('Validation Error', 'License number is required.', 'error')
+      return
+    }
+
+    if (!id) {
+      showAlert('Save Client First', 'Please save the client before adding licenses.', 'error')
+      return
+    }
+
+    try {
+      const newId = generateId()
+      await db.transact([
+        db.tx.clientSupplierLicenses[newId].update({
+          clientId: id,
+          supplierId: supplierId,
+          licenseNumber: licenseNumber
+        })
+      ])
+      
+      // Clear input
+      setNewLicenseInputs(prev => ({
+        ...prev,
+        [supplierId]: ''
+      }))
+      
+      showAlert('Success', 'License added successfully.', 'success')
+    } catch (error) {
+      console.error('Error adding license:', error)
+      showAlert('Error', 'Error adding license. Please try again.', 'error')
+    }
+  }
+
+  const handleDeleteLicense = async (licenseId) => {
+    const confirmed = await showConfirm(
+      'Delete License',
+      'Are you sure you want to delete this license?'
+    )
+    
+    if (!confirmed) return
+
+    try {
+      await db.transact([
+        db.tx.clientSupplierLicenses[licenseId].delete()
+      ])
+      showAlert('Success', 'License deleted successfully.', 'success')
+    } catch (error) {
+      console.error('Error deleting license:', error)
+      showAlert('Error', 'Error deleting license. Please try again.', 'error')
+    }
+  }
+
+  const handleLicenseInputChange = (supplierId, value) => {
+    setNewLicenseInputs(prev => ({
+      ...prev,
+      [supplierId]: value
+    }))
+  }
+
   return (
     <div className="p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
@@ -145,19 +225,6 @@ const ClientEditor = () => {
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
                   placeholder="+243 123 456 789"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  License Number
-                </label>
-                <input
-                  type="text"
-                  value={client.licenseNumber}
-                  onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  placeholder="COD 2021_901899_002"
                 />
               </div>
             </div>
@@ -209,6 +276,102 @@ const ClientEditor = () => {
                 </div>
               </div>
             </div>
+
+            {/* Licenses per Supplier */}
+            {id && (
+              <div className="border-t border-gray-200 pt-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Licenses per Supplier</h2>
+                
+                {suppliers.length === 0 ? (
+                  <p className="text-sm text-gray-500">No suppliers available. Please create suppliers first.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {suppliers.map((supplier) => {
+                      const licenses = getLicensesForSupplier(supplier.id)
+                      const isExpanded = expandedSuppliers[supplier.id]
+                      
+                      return (
+                        <div key={supplier.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleSupplierExpanded(supplier.id)}
+                            className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-gray-900">{supplier.name}</span>
+                              <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">
+                                {licenses.length} {licenses.length === 1 ? 'license' : 'licenses'}
+                              </span>
+                            </div>
+                            <svg
+                              className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="p-4 bg-white">
+                              {/* Existing licenses */}
+                              {licenses.length > 0 && (
+                                <div className="space-y-2 mb-4">
+                                  {licenses.map((license) => (
+                                    <div
+                                      key={license.id}
+                                      className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                                    >
+                                      <span className="text-sm text-gray-900 font-mono">{license.licenseNumber}</span>
+                                      <button
+                                        onClick={() => handleDeleteLicense(license.id)}
+                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Add new license */}
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={newLicenseInputs[supplier.id] || ''}
+                                  onChange={(e) => handleLicenseInputChange(supplier.id, e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleAddLicense(supplier.id)
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm"
+                                  placeholder="Enter new license number"
+                                />
+                                <button
+                                  onClick={() => handleAddLicense(supplier.id)}
+                                  className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {!id && (
+              <div className="border-t border-gray-200 pt-6">
+                <p className="text-sm text-gray-500 italic">
+                  Save the client first to manage licenses per supplier.
+                </p>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-200">

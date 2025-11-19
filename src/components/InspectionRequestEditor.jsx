@@ -10,15 +10,18 @@ import { useModal } from '../contexts/ModalContext'
 const InspectionRequestEditor = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data } = db.useQuery({ inspectionRequests: {}, suppliers: {}, clients: {} })
+  const { data } = db.useQuery({ inspectionRequests: {}, suppliers: {}, clients: {}, clientSupplierLicenses: {} })
   const initialRequestRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
   const { showAlert, showConfirm } = useModal()
   const [isLoaded, setIsLoaded] = useState(false)
+  const [showNewLicenseInput, setShowNewLicenseInput] = useState(false)
+  const [newLicenseValue, setNewLicenseValue] = useState('')
 
   const [request, setRequest] = useState({
     supplierId: '',
     clientId: '',
+    licenseNumber: '',
     containerType: "40' dry high cube",
     inspectionDate: format(new Date(), 'yyyy-MM-dd'),
     inspectionTime: '08:00',
@@ -62,6 +65,10 @@ const InspectionRequestEditor = () => {
     }
     if (!request.clientId) {
       showAlert('Validation Error', 'Please select a client.', 'error')
+      return
+    }
+    if (!request.licenseNumber) {
+      showAlert('Validation Error', 'Please select or enter a license number.', 'error')
       return
     }
     if (!request.inspectionDate) {
@@ -117,8 +124,51 @@ const InspectionRequestEditor = () => {
 
   const suppliers = data?.suppliers || []
   const clients = data?.clients || []
+  const clientSupplierLicenses = data?.clientSupplierLicenses || []
   const selectedSupplier = suppliers.find(s => s.id === request.supplierId)
   const selectedClient = clients.find(c => c.id === request.clientId)
+
+  // Get available licenses for the selected client-supplier combination
+  const availableLicenses = clientSupplierLicenses.filter(
+    license => license.clientId === request.clientId && license.supplierId === request.supplierId
+  )
+
+  const handleAddNewLicense = async () => {
+    const licenseNumber = newLicenseValue.trim()
+    
+    if (!licenseNumber) {
+      showAlert('Validation Error', 'License number is required.', 'error')
+      return
+    }
+
+    if (!request.clientId || !request.supplierId) {
+      showAlert('Validation Error', 'Please select a client and supplier first.', 'error')
+      return
+    }
+
+    try {
+      const newId = generateId()
+      await db.transact([
+        db.tx.clientSupplierLicenses[newId].update({
+          clientId: request.clientId,
+          supplierId: request.supplierId,
+          licenseNumber: licenseNumber
+        })
+      ])
+      
+      // Set the newly created license as selected
+      handleInputChange('licenseNumber', licenseNumber)
+      
+      // Reset the input state
+      setNewLicenseValue('')
+      setShowNewLicenseInput(false)
+      
+      showAlert('Success', 'License added successfully.', 'success')
+    } catch (error) {
+      console.error('Error adding license:', error)
+      showAlert('Error', 'Error adding license. Please try again.', 'error')
+    }
+  }
 
   // Generate preview text in Italian
   const generatePreviewText = () => {
@@ -163,13 +213,13 @@ const InspectionRequestEditor = () => {
 
     return `RICHIESTA ISPEZIONE
 
-Richiedo ispezione per un container ${request.containerType} destinato alla ditta ${selectedClient.name} - ${selectedClient.city || 'Matadi'} - ${selectedClient.country || 'Democratic Republic of Congo'}, con numero di licenza ${selectedClient.licenseNumber || 'N/A'}.
+Richiedo ispezione per un container ${request.containerType} destinato alla ditta ${selectedClient.name} - ${selectedClient.city || 'Matadi'} - ${selectedClient.country || 'Democratic Republic of Congo'}, con numero di licenza ${request.licenseNumber || 'N/A'}.
 
 Il container si carica presso ${selectedSupplier.name} in ${selectedSupplier.address} - ${selectedSupplier.zipCode || ''} ${selectedSupplier.city || ''} (${selectedSupplier.country || ''}) - il ${italianDay} ${dayNumber} di ${italianMonth} ${year} alle ${time}.
 
 Allegato:
 Fattura Proforma
-Licenza ${selectedClient.licenseNumber || 'N/A'}
+Licenza ${request.licenseNumber || 'N/A'}
 Request for information`
   }
 
@@ -235,7 +285,10 @@ Request for information`
                 </label>
                 <select
                   value={request.clientId}
-                  onChange={(e) => handleInputChange('clientId', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('clientId', e.target.value)
+                    handleInputChange('licenseNumber', '')
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
                   <option value="">Select a client</option>
@@ -256,6 +309,79 @@ Request for information`
                   </p>
                 )}
               </div>
+
+              {/* License Number Selection */}
+              {request.clientId && request.supplierId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    License Number <span className="text-red-500">*</span>
+                  </label>
+                  
+                  {!showNewLicenseInput ? (
+                    <>
+                      <select
+                        value={request.licenseNumber}
+                        onChange={(e) => {
+                          if (e.target.value === '__new__') {
+                            setShowNewLicenseInput(true)
+                          } else {
+                            handleInputChange('licenseNumber', e.target.value)
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      >
+                        <option value="">Select a license</option>
+                        {availableLicenses.map(license => (
+                          <option key={license.id} value={license.licenseNumber}>
+                            {license.licenseNumber}
+                          </option>
+                        ))}
+                        <option value="__new__" className="font-medium text-blue-600">
+                          + Add New License
+                        </option>
+                      </select>
+                      {availableLicenses.length === 0 && (
+                        <p className="mt-1 text-sm text-gray-500">
+                          No licenses available for this client-supplier combination.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newLicenseValue}
+                          onChange={(e) => setNewLicenseValue(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleAddNewLicense()
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                          placeholder="Enter new license number"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleAddNewLicense}
+                          className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+                        >
+                          Add
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowNewLicenseInput(false)
+                            setNewLicenseValue('')
+                          }}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

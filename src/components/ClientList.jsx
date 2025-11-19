@@ -86,12 +86,6 @@ const ClientList = () => {
                       <span className="text-gray-500">Phone:</span>
                       <span className="text-gray-900">{client.phone || 'N/A'}</span>
                     </div>
-                    {client.licenseNumber && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">License:</span>
-                        <span className="text-gray-900">{client.licenseNumber}</span>
-                      </div>
-                    )}
                   </div>
                   
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
@@ -127,7 +121,6 @@ const ClientList = () => {
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">City</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Country</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Email</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">License Number</th>
                     <th className="text-center py-3 px-4 text-xs font-medium text-gray-600 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -146,7 +139,6 @@ const ClientList = () => {
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-900">{client.country || 'N/A'}</td>
                       <td className="py-3 px-4 text-sm text-gray-900">{client.email || 'N/A'}</td>
-                      <td className="py-3 px-4 text-sm text-gray-900">{client.licenseNumber || 'N/A'}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
                           <button

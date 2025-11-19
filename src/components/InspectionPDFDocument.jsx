@@ -133,7 +133,7 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
           <Text style={styles.paragraph}>
             Richiedo ispezione per un container {request.containerType} destinato alla ditta{' '}
             {client.name} - {client.city || 'Matadi'} - {client.country || 'Democratic Republic of Congo'}, 
-            con numero di licenza {client.licenseNumber || 'N/A'}.
+            con numero di licenza {request.licenseNumber || 'N/A'}.
           </Text>
 
           <Text style={styles.paragraph}>
@@ -146,7 +146,7 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
           <Text style={styles.attachmentTitle}>Allegato:</Text>
           <Text style={styles.attachmentItem}>Fattura Proforma</Text>
           <Text style={styles.attachmentItem}>
-            Licenza {client.licenseNumber || 'N/A'}
+            Licenza {request.licenseNumber || 'N/A'}
           </Text>
           <Text style={styles.attachmentItem}>Request for information</Text>
         </View>
