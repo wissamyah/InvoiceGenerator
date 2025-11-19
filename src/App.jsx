@@ -1,7 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, createContext, useContext } from 'react'
+import Home from './components/Home'
 import InvoiceEditor from './components/InvoiceEditor'
 import InvoiceList from './components/InvoiceList'
+import SupplierList from './components/SupplierList'
+import SupplierEditor from './components/SupplierEditor'
+import ClientList from './components/ClientList'
+import ClientEditor from './components/ClientEditor'
+import InspectionRequestEditor from './components/InspectionRequestEditor'
+import InspectionRequestList from './components/InspectionRequestList'
 import { ModalProvider, useModal } from './contexts/ModalContext'
 
 // Create a context to track unsaved changes
@@ -18,8 +25,9 @@ function Navigation() {
   const { hasUnsavedChanges } = useUnsavedChanges()
   const { showConfirm } = useModal()
   
-  const isEditorActive = location.pathname === '/' || location.pathname.startsWith('/edit')
-  const isListActive = location.pathname === '/invoices'
+  const isHomeActive = location.pathname === '/'
+  const isInvoicesActive = location.pathname.startsWith('/invoices')
+  const isInspectionActive = location.pathname.startsWith('/inspection')
 
   const handleNavClick = async (e, path) => {
     // Only prevent navigation if we're on editor page and have unsaved changes
@@ -43,23 +51,34 @@ function Navigation() {
             to="/"
             onClick={(e) => handleNavClick(e, '/')}
             className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
-              isEditorActive
+              isHomeActive
                 ? 'text-gray-900 border-b-2 border-gray-900'
                 : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
             }`}
           >
-            Editor
+            Home
           </Link>
           <Link
             to="/invoices"
             onClick={(e) => handleNavClick(e, '/invoices')}
             className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
-              isListActive
+              isInvoicesActive
                 ? 'text-gray-900 border-b-2 border-gray-900'
                 : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
             }`}
           >
             Invoices
+          </Link>
+          <Link
+            to="/inspection/requests"
+            onClick={(e) => handleNavClick(e, '/inspection/requests')}
+            className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
+              isInspectionActive
+                ? 'text-gray-900 border-b-2 border-gray-900'
+                : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
+            }`}
+          >
+            Inspection Requests
           </Link>
         </div>
       </div>
@@ -77,9 +96,19 @@ function App() {
           <div className="min-h-screen bg-gray-100">
             <Navigation />
             <Routes>
-              <Route path="/" element={<InvoiceEditor />} />
-              <Route path="/edit/:id" element={<InvoiceEditor />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/invoices/editor" element={<InvoiceEditor />} />
+              <Route path="/invoices/editor/:id" element={<InvoiceEditor />} />
               <Route path="/invoices" element={<InvoiceList />} />
+              <Route path="/inspection/suppliers" element={<SupplierList />} />
+              <Route path="/inspection/suppliers/editor" element={<SupplierEditor />} />
+              <Route path="/inspection/suppliers/editor/:id" element={<SupplierEditor />} />
+              <Route path="/inspection/clients" element={<ClientList />} />
+              <Route path="/inspection/clients/editor" element={<ClientEditor />} />
+              <Route path="/inspection/clients/editor/:id" element={<ClientEditor />} />
+              <Route path="/inspection/requests" element={<InspectionRequestList />} />
+              <Route path="/inspection/requests/editor" element={<InspectionRequestEditor />} />
+              <Route path="/inspection/requests/editor/:id" element={<InspectionRequestEditor />} />
             </Routes>
           </div>
         </UnsavedChangesContext.Provider>

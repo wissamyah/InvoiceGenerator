@@ -101,7 +101,7 @@ const InvoiceList = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">All Invoices</h1>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/invoices/editor')}
             className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
           >
             Create New Invoice
@@ -112,7 +112,7 @@ const InvoiceList = () => {
           <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
             <p className="text-gray-600 text-sm md:text-base mb-4">No invoices yet</p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/invoices/editor')}
               className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
             >
               Create Your First Invoice
@@ -125,7 +125,7 @@ const InvoiceList = () => {
               {invoices.map((invoice) => (
                 <div
                   key={invoice.id}
-                  onClick={() => navigate(`/edit/${invoice.id}`)}
+                  onClick={() => navigate(`/invoices/editor/${invoice.id}`)}
                   className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -203,7 +203,7 @@ const InvoiceList = () => {
                   <tr
                     key={invoice.id}
                     className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/edit/${invoice.id}`)}
+                    onClick={() => navigate(`/invoices/editor/${invoice.id}`)}
                   >
                     <td className="py-3 px-4 text-sm font-medium text-gray-900">
                       {invoice.invoiceNumber || 'N/A'}
