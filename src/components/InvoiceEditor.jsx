@@ -84,25 +84,18 @@ const InvoiceEditor = () => {
     }
   }, [setHasUnsavedChanges])
 
-  // Check if invoice has any user-entered data
-  const hasFormData = useCallback(() => {
-    // Check if any field has been filled in
-    const hasInvoiceDetails = invoice.invoiceNumber !== ''
-    const hasFromData = Object.values(invoice.from).some(val => val !== '')
-    const hasToData = Object.values(invoice.to).some(val => val !== '')
-    const hasBankData = Object.values(invoice.bankDetails).some(val => val !== '')
-    const hasNotes = invoice.notes !== ''
-    const hasLineItemData = invoice.lineItems.some(item => 
-      item.description !== '' || item.quantity > 0 || item.rate > 0
-    )
+  // Check if invoice has been modified from its initial state
+  const hasActualChanges = useCallback(() => {
+    if (!initialInvoiceRef.current || !isLoaded) return false
     
-    return hasInvoiceDetails || hasFromData || hasToData || hasBankData || hasNotes || hasLineItemData
-  }, [invoice])
+    // Compare current invoice with initial state
+    return JSON.stringify(invoice) !== JSON.stringify(initialInvoiceRef.current)
+  }, [invoice, isLoaded])
 
   // Track if there are unsaved changes
   useEffect(() => {
-    setHasUnsavedChanges(hasFormData())
-  }, [invoice, hasFormData])
+    setHasUnsavedChanges(hasActualChanges())
+  }, [invoice, hasActualChanges, setHasUnsavedChanges])
 
   // Prevent closing/refreshing the page with unsaved changes
   useEffect(() => {
@@ -795,7 +788,7 @@ const InvoiceEditor = () => {
 
           {/* Action Buttons */}
           <div className="sticky bottom-0 bg-white border-t p-4 md:p-5 -mx-4 md:-mx-8 mt-4 md:mt-5 rounded-b-lg">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 onClick={saveInvoice}
                 className="px-4 py-2.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
@@ -809,6 +802,12 @@ const InvoiceEditor = () => {
               >
                 Download PDF
               </PDFDownloadLink>
+              <button
+                onClick={() => handleNavigate('/invoices')}
+                className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

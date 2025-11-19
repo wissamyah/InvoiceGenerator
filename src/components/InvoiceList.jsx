@@ -33,7 +33,7 @@ const InvoiceList = () => {
   const formatCurrency = (amount, currency) => {
     const symbol = currency === 'EUR' ? '€' : '$'
     const numAmount = parseFloat(amount) || 0
-    return `${symbol}${numAmount.toFixed(2)}`
+    return `${symbol}${numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   const calculateTotal = (invoice) => {
@@ -148,6 +148,10 @@ const InvoiceList = () => {
                   
                   <div className="space-y-1.5 mb-3 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-gray-500">From:</span>
+                      <span className="text-gray-900 font-medium">{invoice.from?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-500">Client:</span>
                       <span className="text-gray-900 font-medium">{invoice.to?.name || 'N/A'}</span>
                     </div>
@@ -188,6 +192,7 @@ const InvoiceList = () => {
                   <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Invoice #</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Type</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Date</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">From</th>
                   <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Client</th>
                   <th className="text-right py-3 px-4 text-xs font-medium text-gray-600 uppercase">Total</th>
                   <th className="text-center py-3 px-4 text-xs font-medium text-gray-600 uppercase">Actions</th>
@@ -215,6 +220,7 @@ const InvoiceList = () => {
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {invoice.date ? format(new Date(invoice.date), 'dd/MM/yyyy') : 'N/A'}
                     </td>
+                    <td className="py-3 px-4 text-sm text-gray-900">{invoice.from?.name || 'N/A'}</td>
                     <td className="py-3 px-4 text-sm text-gray-900">{invoice.to?.name || 'N/A'}</td>
                     <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">
                       {formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
