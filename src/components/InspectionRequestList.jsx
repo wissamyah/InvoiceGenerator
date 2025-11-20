@@ -58,26 +58,10 @@ const InspectionRequestList = () => {
             >
               Create New Request
             </button>
-          </div>
         </div>
+      </div>
 
-        {/* Quick Links */}
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => navigate('/inspection/suppliers')}
-            className="px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Manage Suppliers
-          </button>
-          <button
-            onClick={() => navigate('/inspection/clients')}
-            className="px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Manage Clients
-          </button>
-        </div>
-
-        {requests.length === 0 ? (
+      {requests.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
             <p className="text-gray-600 text-sm md:text-base mb-4">No inspection requests yet</p>
             <button

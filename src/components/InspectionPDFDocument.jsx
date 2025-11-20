@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
   },
   stamp: {
     position: 'absolute',
-    bottom: 30,
-    right: 40,
+    bottom: 172,
+    right: 57,
     width: 150,
   },
   pageWithStamp: {
