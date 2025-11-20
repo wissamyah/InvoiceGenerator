@@ -22,7 +22,8 @@ const SupplierEditor = () => {
     email: '',
     phone: '',
     vatNumber: '',
-    cf: ''
+    cf: '',
+    stamp: ''
   })
 
   useEffect(() => {
@@ -52,6 +53,103 @@ const SupplierEditor = () => {
       ...prev,
       [field]: value
     }))
+  }
+
+  const handleStampUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (file.type !== 'image/svg+xml' && !file.type.startsWith('image/')) {
+      showAlert('Invalid File', 'Please upload an SVG or image file.', 'error')
+      return
+    }
+
+    // Validate file size (max 500KB for images, 100KB for SVG)
+    const maxSize = file.type.startsWith('image/png') || file.type.startsWith('image/jpeg') ? 500 * 1024 : 100 * 1024
+    if (file.size > maxSize) {
+      showAlert('File Too Large', 'Stamp file is too large.', 'error')
+      return
+    }
+
+    try {
+      // If it's an SVG, convert to PNG for better PDF compatibility
+      if (file.type === 'image/svg+xml') {
+        const svgText = await file.text()
+        
+        // Convert SVG to PNG
+        const pngDataUrl = await convertSvgToPng(svgText)
+        
+        if (pngDataUrl) {
+          handleInputChange('stamp', pngDataUrl)
+          showAlert('Success', 'Stamp uploaded and converted to PNG for PDF compatibility.', 'success')
+        } else {
+          // Fallback to storing SVG if conversion fails
+          handleInputChange('stamp', svgText)
+          showAlert('Warning', 'Stamp uploaded as SVG. May have compatibility issues in PDFs.', 'warning')
+        }
+      } else {
+        // For PNG/JPG, read as data URL
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          handleInputChange('stamp', event.target.result)
+          showAlert('Success', 'Stamp uploaded successfully.', 'success')
+        }
+        reader.onerror = () => {
+          showAlert('Error', 'Error reading image file.', 'error')
+        }
+        reader.readAsDataURL(file)
+      }
+    } catch (error) {
+      console.error('Error processing stamp file:', error)
+      showAlert('Error', 'Error processing stamp file. Please try again.', 'error')
+    }
+  }
+
+  // Helper function to convert SVG to PNG
+  const convertSvgToPng = (svgString) => {
+    return new Promise((resolve) => {
+      try {
+        const img = new window.Image()
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+        const url = URL.createObjectURL(svgBlob)
+        
+        img.onload = () => {
+          // Preserve aspect ratio - scale to max width 150pt
+          const maxWidth = 150
+          const aspectRatio = img.height / img.width
+          const width = maxWidth
+          const height = maxWidth * aspectRatio
+          
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          
+          const ctx = canvas.getContext('2d')
+          ctx.fillStyle = 'transparent'
+          ctx.fillRect(0, 0, width, height)
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          const pngDataUrl = canvas.toDataURL('image/png')
+          URL.revokeObjectURL(url)
+          resolve(pngDataUrl)
+        }
+        
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve(null)
+        }
+        
+        img.src = url
+      } catch (error) {
+        console.error('Error converting SVG to PNG:', error)
+        resolve(null)
+      }
+    })
+  }
+
+  const handleRemoveStamp = () => {
+    handleInputChange('stamp', '')
   }
 
   const handleSave = async () => {
@@ -85,7 +183,7 @@ const SupplierEditor = () => {
       setHasUnsavedChanges(false)
       
       setTimeout(() => {
-        navigate('/inspection/suppliers')
+        navigate('/management/suppliers')
       }, 500)
     } catch (error) {
       console.error('Error saving supplier:', error)
@@ -101,7 +199,7 @@ const SupplierEditor = () => {
       )
       if (!confirmed) return
     }
-    navigate('/inspection/suppliers')
+    navigate('/management/suppliers')
   }
 
   return (
@@ -238,6 +336,65 @@ const SupplierEditor = () => {
                       placeholder="Italy"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stamp/Logo Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Company Stamp/Logo</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload SVG Stamp (Optional)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Upload an SVG file of your company stamp or logo. This will appear on PDFs for invoices and inspection requests. Max size: 100KB.
+                  </p>
+                  
+                  {supplier.stamp ? (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 border border-gray-200 rounded-md p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div 
+                            className="w-20 h-20 border border-gray-300 bg-white rounded flex items-center justify-center p-2"
+                            dangerouslySetInnerHTML={{ __html: supplier.stamp }}
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Stamp uploaded</p>
+                            <p className="text-xs text-gray-500">This stamp will appear on PDFs</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveStamp}
+                          className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <label className="inline-block px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors cursor-pointer">
+                        Replace Stamp
+                        <input
+                          type="file"
+                          accept=".svg,image/svg+xml"
+                          onChange={handleStampUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="inline-block px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors cursor-pointer">
+                      Upload SVG Stamp
+                      <input
+                        type="file"
+                        accept=".svg,image/svg+xml"
+                        onChange={handleStampUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </div>

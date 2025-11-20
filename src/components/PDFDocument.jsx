@@ -1,5 +1,6 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { format } from 'date-fns'
+import { useState, useEffect } from 'react'
 
 // A4 page size: 595.28 x 841.89 points
 const styles = StyleSheet.create({
@@ -121,10 +122,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#ddd',
     paddingTop: 15,
+    paddingBottom: 60,
+  },
+  stamp: {
+    position: 'absolute',
+    bottom: 30,
+    right: 40,
+    maxWidth: 150,
+    height: 'auto',
+  },
+  pageWithStamp: {
+    position: 'relative',
   },
 })
 
-const PDFDocument = ({ invoice, totals }) => {
+const PDFDocument = ({ invoice, totals, supplier }) => {
   // Defensive checks for undefined values
   const safeInvoice = {
     ...invoice,
@@ -169,14 +181,67 @@ const PDFDocument = ({ invoice, totals }) => {
     }
   }
 
+  // Handle stamp - convert SVG to PNG if needed
+  const [stampDataUrl, setStampDataUrl] = useState(null)
+  
+  useEffect(() => {
+    if (!supplier?.stamp) {
+      console.log('PDFDocument: No stamp found')
+      setStampDataUrl(null)
+      return
+    }
+    
+    // Check if it's already a PNG data URL
+    if (supplier.stamp.startsWith('data:image/png') || supplier.stamp.startsWith('data:image/jpeg')) {
+      console.log('PDFDocument: Using PNG/JPEG stamp directly')
+      setStampDataUrl(supplier.stamp)
+      return
+    }
+    
+    // If it's SVG (legacy format), convert to PNG
+    console.log('PDFDocument: Converting legacy SVG stamp to PNG...')
+    const img = new window.Image()
+    const svgBlob = new Blob([supplier.stamp], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(svgBlob)
+    
+    img.onload = () => {
+      // Preserve aspect ratio - your SVG is 509.8 x 195.69
+      // Scale to fit nicely in PDF (max width 150pt for A4)
+      const maxWidth = 150
+      const aspectRatio = img.height / img.width
+      const width = maxWidth
+      const height = maxWidth * aspectRatio
+      
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = 'transparent'
+      ctx.fillRect(0, 0, width, height)
+      ctx.drawImage(img, 0, 0, width, height)
+      const pngDataUrl = canvas.toDataURL('image/png')
+      console.log('PDFDocument: SVG converted to PNG successfully, size:', width, 'x', height)
+      setStampDataUrl(pngDataUrl)
+      URL.revokeObjectURL(url)
+    }
+    
+    img.onerror = () => {
+      console.error('PDFDocument: Failed to convert SVG stamp')
+      URL.revokeObjectURL(url)
+      setStampDataUrl(null)
+    }
+    
+    img.src = url
+  }, [supplier?.stamp])
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={[styles.page, styles.pageWithStamp]}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
             <Text style={styles.title}>{documentTitle}</Text>
-            <View style={{ textAlign: 'right' }}>
+            <View style={{ textAlign: 'right', position: 'relative' }}>
               <Text style={{ fontSize: 8, color: '#666', marginBottom: 2 }}>{documentLabel}</Text>
               <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
                 #{safeInvoice.invoiceNumber || 'N/A'}
@@ -274,6 +339,11 @@ const PDFDocument = ({ invoice, totals }) => {
           <Text style={styles.text}>IBAN: {safeInvoice.bankDetails.iban || 'N/A'}</Text>
           <Text style={styles.text}>BIC: {safeInvoice.bankDetails.bic || 'N/A'}</Text>
         </View>
+
+        {/* Stamp at bottom right */}
+        {stampDataUrl && (
+          <Image src={stampDataUrl} style={styles.stamp} />
+        )}
       </Page>
     </Document>
   )

@@ -27,6 +27,7 @@ function Navigation() {
   
   const isHomeActive = location.pathname === '/'
   const isInvoicesActive = location.pathname.startsWith('/invoices')
+  const isManagementActive = location.pathname.startsWith('/management')
   const isInspectionActive = location.pathname.startsWith('/inspection')
 
   const handleNavClick = async (e, path) => {
@@ -70,6 +71,17 @@ function Navigation() {
             Invoices
           </Link>
           <Link
+            to="/management/suppliers"
+            onClick={(e) => handleNavClick(e, '/management/suppliers')}
+            className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
+              isManagementActive
+                ? 'text-gray-900 border-b-2 border-gray-900'
+                : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
+            }`}
+          >
+            Management
+          </Link>
+          <Link
             to="/inspection/requests"
             onClick={(e) => handleNavClick(e, '/inspection/requests')}
             className={`py-3 px-3 md:px-4 font-medium text-sm transition-colors min-h-[44px] flex items-center ${
@@ -100,12 +112,12 @@ function App() {
               <Route path="/invoices/editor" element={<InvoiceEditor />} />
               <Route path="/invoices/editor/:id" element={<InvoiceEditor />} />
               <Route path="/invoices" element={<InvoiceList />} />
-              <Route path="/inspection/suppliers" element={<SupplierList />} />
-              <Route path="/inspection/suppliers/editor" element={<SupplierEditor />} />
-              <Route path="/inspection/suppliers/editor/:id" element={<SupplierEditor />} />
-              <Route path="/inspection/clients" element={<ClientList />} />
-              <Route path="/inspection/clients/editor" element={<ClientEditor />} />
-              <Route path="/inspection/clients/editor/:id" element={<ClientEditor />} />
+              <Route path="/management/suppliers" element={<SupplierList />} />
+              <Route path="/management/suppliers/editor" element={<SupplierEditor />} />
+              <Route path="/management/suppliers/editor/:id" element={<SupplierEditor />} />
+              <Route path="/management/clients" element={<ClientList />} />
+              <Route path="/management/clients/editor" element={<ClientEditor />} />
+              <Route path="/management/clients/editor/:id" element={<ClientEditor />} />
               <Route path="/inspection/requests" element={<InspectionRequestList />} />
               <Route path="/inspection/requests/editor" element={<InspectionRequestEditor />} />
               <Route path="/inspection/requests/editor/:id" element={<InspectionRequestEditor />} />

@@ -233,13 +233,22 @@ Request for information`
             </h1>
             {request.supplierId && request.clientId && (
               <PDFDownloadLink
-                document={
-                  <InspectionPDFDocument 
-                    request={request}
-                    supplier={selectedSupplier}
-                    client={selectedClient}
-                  />
-                }
+                document={(() => {
+                  console.log('InspectionRequestEditor: Generating PDF')
+                  console.log('InspectionRequestEditor: Supplier ID:', request.supplierId)
+                  console.log('InspectionRequestEditor: Supplier found:', selectedSupplier ? 'Yes' : 'No')
+                  console.log('InspectionRequestEditor: Supplier has stamp:', selectedSupplier?.stamp ? 'Yes' : 'No')
+                  if (selectedSupplier?.stamp) {
+                    console.log('InspectionRequestEditor: Stamp length:', selectedSupplier.stamp.length)
+                  }
+                  return (
+                    <InspectionPDFDocument 
+                      request={request}
+                      supplier={selectedSupplier}
+                      client={selectedClient}
+                    />
+                  )
+                })()}
                 fileName={`Inspection_Request_${selectedClient?.name?.replace(/\s+/g, '_')}_${request.inspectionDate}.pdf`}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium text-sm transition-colors"
               >

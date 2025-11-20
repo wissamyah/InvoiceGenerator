@@ -1,5 +1,6 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { format } from 'date-fns'
+import { useState, useEffect } from 'react'
 
 const styles = StyleSheet.create({
   page: {
@@ -55,6 +56,16 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     marginLeft: 10,
   },
+  stamp: {
+    position: 'absolute',
+    bottom: 30,
+    right: 40,
+    maxWidth: 150,
+    height: 'auto',
+  },
+  pageWithStamp: {
+    position: 'relative',
+  },
 })
 
 const InspectionPDFDocument = ({ request, supplier, client }) => {
@@ -105,24 +116,80 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
   const italianDay = italianDays[dayName] || dayName.toLowerCase()
   const italianMonth = italianMonths[monthName] || monthName.toLowerCase()
 
+  // Handle stamp - convert SVG to PNG if needed
+  const [stampDataUrl, setStampDataUrl] = useState(null)
+  
+  useEffect(() => {
+    if (!supplier?.stamp) {
+      console.log('InspectionPDFDocument: No stamp found')
+      setStampDataUrl(null)
+      return
+    }
+    
+    // Check if it's already a PNG data URL
+    if (supplier.stamp.startsWith('data:image/png') || supplier.stamp.startsWith('data:image/jpeg')) {
+      console.log('InspectionPDFDocument: Using PNG/JPEG stamp directly')
+      setStampDataUrl(supplier.stamp)
+      return
+    }
+    
+    // If it's SVG (legacy format), convert to PNG
+    console.log('InspectionPDFDocument: Converting legacy SVG stamp to PNG...')
+    const img = new window.Image()
+    const svgBlob = new Blob([supplier.stamp], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(svgBlob)
+    
+    img.onload = () => {
+      // Preserve aspect ratio - scale to fit nicely in PDF
+      const maxWidth = 150
+      const aspectRatio = img.height / img.width
+      const width = maxWidth
+      const height = maxWidth * aspectRatio
+      
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = 'transparent'
+      ctx.fillRect(0, 0, width, height)
+      ctx.drawImage(img, 0, 0, width, height)
+      const pngDataUrl = canvas.toDataURL('image/png')
+      console.log('InspectionPDFDocument: SVG converted to PNG successfully, size:', width, 'x', height)
+      setStampDataUrl(pngDataUrl)
+      URL.revokeObjectURL(url)
+    }
+    
+    img.onerror = () => {
+      console.error('InspectionPDFDocument: Failed to convert SVG stamp')
+      URL.revokeObjectURL(url)
+      setStampDataUrl(null)
+    }
+    
+    img.src = url
+  }, [supplier?.stamp])
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={[styles.page, styles.pageWithStamp]}>
         {/* Supplier Header */}
         <View style={styles.header}>
-          <Text style={styles.supplierName}>{supplier.name || ''}</Text>
-          <Text style={styles.supplierDetails}>{supplier.address || ''}</Text>
-          <Text style={styles.supplierDetails}>
-            {supplier.zipCode} {supplier.city}, {supplier.country}
-          </Text>
-          <Text style={styles.supplierDetails}>{supplier.email || ''}</Text>
-          <Text style={styles.supplierDetails}>{supplier.phone || ''}</Text>
-          {supplier.vatNumber && (
-            <Text style={styles.supplierDetails}>P.IVA: {supplier.vatNumber}</Text>
-          )}
-          {supplier.cf && (
-            <Text style={styles.supplierDetails}>CF: {supplier.cf}</Text>
-          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.supplierName}>{supplier.name || ''}</Text>
+              <Text style={styles.supplierDetails}>{supplier.address || ''}</Text>
+              <Text style={styles.supplierDetails}>
+                {supplier.zipCode} {supplier.city}, {supplier.country}
+              </Text>
+              <Text style={styles.supplierDetails}>{supplier.email || ''}</Text>
+              <Text style={styles.supplierDetails}>{supplier.phone || ''}</Text>
+              {supplier.vatNumber && (
+                <Text style={styles.supplierDetails}>P.IVA: {supplier.vatNumber}</Text>
+              )}
+              {supplier.cf && (
+                <Text style={styles.supplierDetails}>CF: {supplier.cf}</Text>
+              )}
+            </View>
+          </View>
         </View>
 
         {/* Title */}
@@ -150,6 +217,11 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
           </Text>
           <Text style={styles.attachmentItem}>Request for information</Text>
         </View>
+
+        {/* Stamp at bottom right */}
+        {stampDataUrl && (
+          <Image src={stampDataUrl} style={styles.stamp} />
+        )}
       </Page>
     </Document>
   )

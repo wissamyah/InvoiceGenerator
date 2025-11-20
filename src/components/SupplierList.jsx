@@ -42,19 +42,27 @@ const SupplierList = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Suppliers</h1>
-          <button
-            onClick={() => navigate('/inspection/suppliers/editor')}
-            className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
-          >
-            Add New Supplier
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/management/clients')}
+              className="w-full sm:w-auto px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors"
+            >
+              View Clients
+            </button>
+            <button
+              onClick={() => navigate('/management/suppliers/editor')}
+              className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
+            >
+              Add New Supplier
+            </button>
+          </div>
         </div>
 
         {suppliers.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
             <p className="text-gray-600 text-sm md:text-base mb-4">No suppliers yet</p>
             <button
-              onClick={() => navigate('/inspection/suppliers/editor')}
+              onClick={() => navigate('/management/suppliers/editor')}
               className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
             >
               Add Your First Supplier
@@ -67,7 +75,7 @@ const SupplierList = () => {
               {suppliers.map((supplier) => (
                 <div
                   key={supplier.id}
-                  onClick={() => navigate(`/inspection/suppliers/editor/${supplier.id}`)}
+                  onClick={() => navigate(`/management/suppliers/editor/${supplier.id}`)}
                   className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="mb-3">
@@ -136,7 +144,7 @@ const SupplierList = () => {
                     <tr
                       key={supplier.id}
                       className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/inspection/suppliers/editor/${supplier.id}`)}
+                      onClick={() => navigate(`/management/suppliers/editor/${supplier.id}`)}
                     >
                       <td className="py-3 px-4 text-sm font-medium text-gray-900">
                         {supplier.name || 'N/A'}
@@ -152,7 +160,7 @@ const SupplierList = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              navigate(`/inspection/suppliers/editor/${supplier.id}`)
+                              navigate(`/management/suppliers/editor/${supplier.id}`)
                             }}
                             className="px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                           >

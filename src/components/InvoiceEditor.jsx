@@ -11,7 +11,7 @@ const InvoiceEditor = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { data } = db.useQuery({ invoices: {} })
+  const { data } = db.useQuery({ invoices: {}, suppliers: {}, clients: {} })
   const initialInvoiceRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
   const { showAlert, showConfirm } = useModal()
@@ -27,6 +27,8 @@ const InvoiceEditor = () => {
     vatEnabled: false,
     vatRate: 0,
     notes: '',
+    supplierId: '',
+    clientId: '',
     from: {
       name: '',
       address: '',
@@ -188,6 +190,56 @@ const InvoiceEditor = () => {
       ...invoice,
       [parent]: { ...invoice[parent], [field]: value }
     })
+  }
+
+  // Handle supplier selection
+  const handleSupplierChange = (supplierId) => {
+    const supplier = data?.suppliers?.find(s => s.id === supplierId)
+    if (supplier) {
+      setInvoice({
+        ...invoice,
+        supplierId: supplierId,
+        from: {
+          name: supplier.name || '',
+          address: `${supplier.address || ''}${supplier.city ? ', ' + supplier.city : ''}${supplier.zipCode ? ' ' + supplier.zipCode : ''}`,
+          email: supplier.email || '',
+          phone: supplier.phone || '',
+          country: supplier.country || '',
+          piva: supplier.vatNumber || '',
+          cf: supplier.cf || ''
+        }
+      })
+    } else {
+      // Clear supplier
+      setInvoice({
+        ...invoice,
+        supplierId: ''
+      })
+    }
+  }
+
+  // Handle client selection
+  const handleClientChange = (clientId) => {
+    const client = data?.clients?.find(c => c.id === clientId)
+    if (client) {
+      setInvoice({
+        ...invoice,
+        clientId: clientId,
+        to: {
+          name: client.name || '',
+          address: `${client.address || ''}${client.city ? ', ' + client.city : ''}`,
+          email: client.email || '',
+          phone: client.phone || '',
+          country: client.country || ''
+        }
+      })
+    } else {
+      // Clear client
+      setInvoice({
+        ...invoice,
+        clientId: ''
+      })
+    }
   }
 
   // Save invoice
@@ -509,6 +561,21 @@ const InvoiceEditor = () => {
               <h3 className="text-sm font-medium text-gray-900">From (Your Company)</h3>
             </div>
             <div className="p-4 md:p-5 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Select Supplier</label>
+                <select
+                  value={invoice.supplierId || ''}
+                  onChange={(e) => handleSupplierChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white"
+                >
+                  <option value="">-- Select a supplier or enter manually --</option>
+                  {(data?.suppliers || []).map(supplier => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name} ({supplier.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
               <input
                 type="text"
                 value={invoice.from.name}
@@ -577,6 +644,21 @@ const InvoiceEditor = () => {
               <h3 className="text-sm font-medium text-gray-900">Bill To (Client)</h3>
             </div>
             <div className="p-4 md:p-5 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Select Client</label>
+                <select
+                  value={invoice.clientId || ''}
+                  onChange={(e) => handleClientChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white"
+                >
+                  <option value="">-- Select a client or enter manually --</option>
+                  {(data?.clients || []).map(client => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
               <input
                 type="text"
                 value={invoice.to.name}
@@ -796,7 +878,14 @@ const InvoiceEditor = () => {
                 Save Invoice
               </button>
               <PDFDownloadLink
-                document={<PDFDocument invoice={invoice} totals={{ subtotal, vatAmount, total }} />}
+                document={(() => {
+                  const supplier = data?.suppliers?.find(s => s.id === invoice.supplierId)
+                  console.log('InvoiceEditor: Generating PDF')
+                  console.log('InvoiceEditor: Supplier ID:', invoice.supplierId)
+                  console.log('InvoiceEditor: Supplier found:', supplier ? 'Yes' : 'No')
+                  console.log('InvoiceEditor: Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
+                  return <PDFDocument invoice={invoice} totals={{ subtotal, vatAmount, total }} supplier={supplier} />
+                })()}
                 fileName={generatePDFFilename()}
                 className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors text-center flex items-center justify-center"
               >

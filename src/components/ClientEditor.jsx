@@ -80,7 +80,7 @@ const ClientEditor = () => {
       setHasUnsavedChanges(false)
       
       setTimeout(() => {
-        navigate('/inspection/clients')
+        navigate('/management/clients')
       }, 500)
     } catch (error) {
       console.error('Error saving client:', error)
@@ -96,7 +96,7 @@ const ClientEditor = () => {
       )
       if (!confirmed) return
     }
-    navigate('/inspection/clients')
+    navigate('/management/clients')
   }
 
   // License management functions

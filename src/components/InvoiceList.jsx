@@ -7,7 +7,7 @@ import { useModal } from '../contexts/ModalContext'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
-  const { data, isLoading } = db.useQuery({ invoices: {} })
+  const { data, isLoading } = db.useQuery({ invoices: {}, suppliers: {} })
   const { showAlert, showPasswordPrompt } = useModal()
 
   const deleteInvoice = async (id) => {
@@ -163,7 +163,17 @@ const InvoiceList = () => {
                   
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
                     <PDFDownloadLink
-                      document={<PDFDocument invoice={invoice} totals={calculateTotals(invoice)} />}
+                      document={(() => {
+                        const supplier = data?.suppliers?.find(s => s.id === invoice.supplierId)
+                        console.log('InvoiceList: Generating PDF for invoice', invoice.invoiceNumber)
+                        console.log('InvoiceList: Supplier ID:', invoice.supplierId)
+                        console.log('InvoiceList: Supplier found:', supplier ? 'Yes' : 'No')
+                        console.log('InvoiceList: Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
+                        if (supplier?.stamp) {
+                          console.log('InvoiceList: Stamp length:', supplier.stamp.length)
+                        }
+                        return <PDFDocument invoice={invoice} totals={calculateTotals(invoice)} supplier={supplier} />
+                      })()}
                       fileName={generatePDFFilename(invoice)}
                       className="flex-1 px-3 py-2 text-center text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                       onClick={(e) => e.stopPropagation()}
@@ -228,7 +238,14 @@ const InvoiceList = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
                         <PDFDownloadLink
-                          document={<PDFDocument invoice={invoice} totals={calculateTotals(invoice)} />}
+                          document={(() => {
+                            const supplier = data?.suppliers?.find(s => s.id === invoice.supplierId)
+                            console.log('InvoiceList (Desktop): Generating PDF for invoice', invoice.invoiceNumber)
+                            console.log('InvoiceList (Desktop): Supplier ID:', invoice.supplierId)
+                            console.log('InvoiceList (Desktop): Supplier found:', supplier ? 'Yes' : 'No')
+                            console.log('InvoiceList (Desktop): Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
+                            return <PDFDocument invoice={invoice} totals={calculateTotals(invoice)} supplier={supplier} />
+                          })()}
                           fileName={generatePDFFilename(invoice)}
                           className="px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                           onClick={(e) => e.stopPropagation()}

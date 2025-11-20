@@ -42,19 +42,27 @@ const ClientList = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Clients</h1>
-          <button
-            onClick={() => navigate('/inspection/clients/editor')}
-            className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
-          >
-            Add New Client
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/management/suppliers')}
+              className="w-full sm:w-auto px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors"
+            >
+              View Suppliers
+            </button>
+            <button
+              onClick={() => navigate('/management/clients/editor')}
+              className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
+            >
+              Add New Client
+            </button>
+          </div>
         </div>
 
         {clients.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
             <p className="text-gray-600 text-sm md:text-base mb-4">No clients yet</p>
             <button
-              onClick={() => navigate('/inspection/clients/editor')}
+              onClick={() => navigate('/management/clients/editor')}
               className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors"
             >
               Add Your First Client
@@ -67,7 +75,7 @@ const ClientList = () => {
               {clients.map((client) => (
                 <div
                   key={client.id}
-                  onClick={() => navigate(`/inspection/clients/editor/${client.id}`)}
+                  onClick={() => navigate(`/management/clients/editor/${client.id}`)}
                   className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="mb-3">
@@ -92,7 +100,7 @@ const ClientList = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/inspection/clients/editor/${client.id}`)
+                        navigate(`/management/clients/editor/${client.id}`)
                       }}
                       className="flex-1 px-3 py-2 text-center text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                     >
@@ -129,7 +137,7 @@ const ClientList = () => {
                     <tr
                       key={client.id}
                       className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/inspection/clients/editor/${client.id}`)}
+                      onClick={() => navigate(`/management/clients/editor/${client.id}`)}
                     >
                       <td className="py-3 px-4 text-sm font-medium text-gray-900">
                         {client.name || 'N/A'}
@@ -144,7 +152,7 @@ const ClientList = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              navigate(`/inspection/clients/editor/${client.id}`)
+                              navigate(`/management/clients/editor/${client.id}`)
                             }}
                             className="px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                           >
