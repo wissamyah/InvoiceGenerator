@@ -122,23 +122,7 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
     ? supplier.stamp
     : null
   
-  if (supplier?.stamp) {
-    console.log('InspectionPDFDocument: Processing stamp...')
-    console.log('InspectionPDFDocument: Stamp length:', supplier.stamp.length)
-    console.log('InspectionPDFDocument: Stamp starts with:', supplier.stamp.substring(0, 50))
-    
-    if (!stampDataUrl) {
-      console.error('❌ InspectionPDFDocument: Stamp is NOT in PNG/JPEG format!')
-      console.error('❌ This stamp will NOT appear in PDF')
-      console.error('❌ Please re-upload the stamp to convert it to PNG format')
-    } else {
-      console.log('✅ InspectionPDFDocument: Valid PNG/JPEG stamp found!')
-      console.log('✅ Stamp type:', stampDataUrl.substring(0, 25))
-      console.log('✅ This stamp WILL appear in PDF')
-    }
-  } else {
-    console.log('InspectionPDFDocument: No stamp provided')
-  }
+  // Stamp processing removed for cleaner console
 
   return (
     <Document>

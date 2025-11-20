@@ -111,12 +111,10 @@ const SupplierEditor = () => {
               ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
               
               const optimizedDataUrl = canvas.toDataURL('image/png', 1.0)
-              console.log(`PNG optimized: ${canvas.width}x${canvas.height}px (${optimizedDataUrl.length} chars)`)
               handleInputChange('stamp', optimizedDataUrl)
               showAlert('Success', 'Stamp uploaded and optimized for PDF.', 'success')
             } else {
               // Image is already at good resolution
-              console.log(`PNG uploaded: ${img.width}x${img.height}px (${event.target.result.length} chars)`)
               handleInputChange('stamp', event.target.result)
               showAlert('Success', 'Stamp uploaded successfully.', 'success')
             }
@@ -170,7 +168,6 @@ const SupplierEditor = () => {
           const pngDataUrl = canvas.toDataURL('image/png', 1.0)
           URL.revokeObjectURL(url)
           
-          console.log(`SVG converted to PNG: ${canvasWidth}x${canvasHeight}px (${pngDataUrl.length} chars)`)
           resolve(pngDataUrl)
         }
         

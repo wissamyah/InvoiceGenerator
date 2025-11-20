@@ -187,37 +187,7 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
     ? supplier.stamp
     : null
   
-  if (supplier?.stamp) {
-    console.log('PDFDocument: Processing stamp...')
-    console.log('PDFDocument: Stamp length:', supplier.stamp.length)
-    console.log('PDFDocument: Stamp starts with:', supplier.stamp.substring(0, 50))
-    
-    if (!stampDataUrl) {
-      console.error('❌ PDFDocument: Stamp is NOT in PNG/JPEG format!')
-      console.error('❌ This stamp will NOT appear in PDF')
-      console.error('❌ Please re-upload the stamp to convert it to PNG format')
-    } else {
-      console.log('✅ PDFDocument: Valid PNG/JPEG stamp found!')
-      console.log('✅ Stamp type:', stampDataUrl.substring(0, 25))
-      console.log('✅ This stamp WILL appear in PDF')
-      
-      // Test if the image can be loaded in browser
-      if (typeof window !== 'undefined') {
-        const testImg = new window.Image()
-        testImg.onload = () => {
-          console.log('✅ PDFDocument: Stamp image loaded successfully in browser')
-          console.log('✅ Image dimensions:', testImg.width, 'x', testImg.height)
-        }
-        testImg.onerror = () => {
-          console.error('❌ PDFDocument: Stamp image FAILED to load in browser!')
-          console.error('❌ The image data might be corrupted')
-        }
-        testImg.src = stampDataUrl
-      }
-    }
-  } else {
-    console.log('PDFDocument: No stamp provided')
-  }
+  // Stamp processing removed for cleaner console
 
   return (
     <Document>

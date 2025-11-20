@@ -133,22 +133,13 @@ const InspectionRequestList = () => {
                     
                     <div className="flex gap-2 pt-3 border-t border-gray-100">
                       <PDFDownloadLink
-                        document={(() => {
-                          console.log('InspectionRequestList: Generating PDF for request')
-                          console.log('InspectionRequestList: Supplier ID:', request.supplierId)
-                          console.log('InspectionRequestList: Supplier found:', supplier ? 'Yes' : 'No')
-                          console.log('InspectionRequestList: Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
-                          if (supplier?.stamp) {
-                            console.log('InspectionRequestList: Stamp length:', supplier.stamp.length)
-                          }
-                          return (
-                            <InspectionPDFDocument 
-                              request={request}
-                              supplier={supplier}
-                              client={client}
-                            />
-                          )
-                        })()}
+                        document={
+                          <InspectionPDFDocument 
+                            request={request}
+                            supplier={supplier}
+                            client={client}
+                          />
+                        }
                         fileName={`Inspection_Request_${client?.name?.replace(/\s+/g, '_')}_${request.inspectionDate}.pdf`}
                         className="flex-1 px-3 py-2 text-center text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                         onClick={(e) => e.stopPropagation()}
@@ -214,18 +205,13 @@ const InspectionRequestList = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-2">
                             <PDFDownloadLink
-                              document={(() => {
-                                console.log('InspectionRequestList (Desktop): Generating PDF')
-                                console.log('InspectionRequestList (Desktop): Supplier found:', supplier ? 'Yes' : 'No')
-                                console.log('InspectionRequestList (Desktop): Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
-                                return (
-                                  <InspectionPDFDocument 
-                                    request={request}
-                                    supplier={supplier}
-                                    client={client}
-                                  />
-                                )
-                              })()}
+                              document={
+                                <InspectionPDFDocument 
+                                  request={request}
+                                  supplier={supplier}
+                                  client={client}
+                                />
+                              }
                               fileName={`Inspection_Request_${client?.name?.replace(/\s+/g, '_')}_${request.inspectionDate}.pdf`}
                               className="px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md font-medium text-xs transition-colors"
                               onClick={(e) => e.stopPropagation()}

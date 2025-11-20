@@ -117,7 +117,6 @@ export const isValidSvg = (svgString) => {
  */
 export const getStampDataUrl = async (supplier, forcePng = false) => {
   if (!supplier?.stamp) {
-    console.log('No stamp found in supplier data')
     return null
   }
   
@@ -129,12 +128,10 @@ export const getStampDataUrl = async (supplier, forcePng = false) => {
   
   // If force PNG or if we detect complex SVG features that might not work
   if (forcePng) {
-    console.log('Converting stamp to PNG for better compatibility')
     return await svgToPngDataUrl(supplier.stamp, 300, 300)
   }
   
   // Try base64 SVG first (faster, smaller file size)
-  console.log('Using base64 SVG for stamp')
   return svgToBase64DataUrl(supplier.stamp)
 }
 

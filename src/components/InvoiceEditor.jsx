@@ -878,14 +878,13 @@ const InvoiceEditor = () => {
                 Save Invoice
               </button>
               <PDFDownloadLink
-                document={(() => {
-                  const supplier = data?.suppliers?.find(s => s.id === invoice.supplierId)
-                  console.log('InvoiceEditor: Generating PDF')
-                  console.log('InvoiceEditor: Supplier ID:', invoice.supplierId)
-                  console.log('InvoiceEditor: Supplier found:', supplier ? 'Yes' : 'No')
-                  console.log('InvoiceEditor: Supplier has stamp:', supplier?.stamp ? 'Yes' : 'No')
-                  return <PDFDocument invoice={invoice} totals={{ subtotal, vatAmount, total }} supplier={supplier} />
-                })()}
+                document={
+                  <PDFDocument 
+                    invoice={invoice} 
+                    totals={{ subtotal, vatAmount, total }} 
+                    supplier={data?.suppliers?.find(s => s.id === invoice.supplierId)} 
+                  />
+                }
                 fileName={generatePDFFilename()}
                 className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium text-sm transition-colors text-center flex items-center justify-center"
               >
