@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { format } from 'date-fns'
-import { useState, useEffect } from 'react'
 
 const styles = StyleSheet.create({
   page: {
@@ -60,8 +59,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 30,
     right: 40,
-    maxWidth: 150,
-    height: 'auto',
+    width: 150,
   },
   pageWithStamp: {
     position: 'relative',
@@ -116,57 +114,31 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
   const italianDay = italianDays[dayName] || dayName.toLowerCase()
   const italianMonth = italianMonths[monthName] || monthName.toLowerCase()
 
-  // Handle stamp - convert SVG to PNG if needed
-  const [stampDataUrl, setStampDataUrl] = useState(null)
+  // Check if stamp is valid (should be a data URL)
+  const stampDataUrl = supplier?.stamp && 
+    (supplier.stamp.startsWith('data:image/png') || 
+     supplier.stamp.startsWith('data:image/jpeg') ||
+     supplier.stamp.startsWith('data:image/jpg'))
+    ? supplier.stamp
+    : null
   
-  useEffect(() => {
-    if (!supplier?.stamp) {
-      console.log('InspectionPDFDocument: No stamp found')
-      setStampDataUrl(null)
-      return
+  if (supplier?.stamp) {
+    console.log('InspectionPDFDocument: Processing stamp...')
+    console.log('InspectionPDFDocument: Stamp length:', supplier.stamp.length)
+    console.log('InspectionPDFDocument: Stamp starts with:', supplier.stamp.substring(0, 50))
+    
+    if (!stampDataUrl) {
+      console.error('❌ InspectionPDFDocument: Stamp is NOT in PNG/JPEG format!')
+      console.error('❌ This stamp will NOT appear in PDF')
+      console.error('❌ Please re-upload the stamp to convert it to PNG format')
+    } else {
+      console.log('✅ InspectionPDFDocument: Valid PNG/JPEG stamp found!')
+      console.log('✅ Stamp type:', stampDataUrl.substring(0, 25))
+      console.log('✅ This stamp WILL appear in PDF')
     }
-    
-    // Check if it's already a PNG data URL
-    if (supplier.stamp.startsWith('data:image/png') || supplier.stamp.startsWith('data:image/jpeg')) {
-      console.log('InspectionPDFDocument: Using PNG/JPEG stamp directly')
-      setStampDataUrl(supplier.stamp)
-      return
-    }
-    
-    // If it's SVG (legacy format), convert to PNG
-    console.log('InspectionPDFDocument: Converting legacy SVG stamp to PNG...')
-    const img = new window.Image()
-    const svgBlob = new Blob([supplier.stamp], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(svgBlob)
-    
-    img.onload = () => {
-      // Preserve aspect ratio - scale to fit nicely in PDF
-      const maxWidth = 150
-      const aspectRatio = img.height / img.width
-      const width = maxWidth
-      const height = maxWidth * aspectRatio
-      
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.fillStyle = 'transparent'
-      ctx.fillRect(0, 0, width, height)
-      ctx.drawImage(img, 0, 0, width, height)
-      const pngDataUrl = canvas.toDataURL('image/png')
-      console.log('InspectionPDFDocument: SVG converted to PNG successfully, size:', width, 'x', height)
-      setStampDataUrl(pngDataUrl)
-      URL.revokeObjectURL(url)
-    }
-    
-    img.onerror = () => {
-      console.error('InspectionPDFDocument: Failed to convert SVG stamp')
-      URL.revokeObjectURL(url)
-      setStampDataUrl(null)
-    }
-    
-    img.src = url
-  }, [supplier?.stamp])
+  } else {
+    console.log('InspectionPDFDocument: No stamp provided')
+  }
 
   return (
     <Document>
@@ -220,7 +192,13 @@ const InspectionPDFDocument = ({ request, supplier, client }) => {
 
         {/* Stamp at bottom right */}
         {stampDataUrl && (
-          <Image src={stampDataUrl} style={styles.stamp} />
+          <View style={styles.stamp}>
+            <Image 
+              src={stampDataUrl} 
+              style={{ width: '100%', height: 'auto' }}
+              cache={false}
+            />
+          </View>
         )}
       </Page>
     </Document>

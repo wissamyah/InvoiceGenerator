@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { format } from 'date-fns'
-import { useState, useEffect } from 'react'
 
 // A4 page size: 595.28 x 841.89 points
 const styles = StyleSheet.create({
@@ -128,8 +127,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 30,
     right: 40,
-    maxWidth: 150,
-    height: 'auto',
+    width: 150,
   },
   pageWithStamp: {
     position: 'relative',
@@ -181,58 +179,45 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
     }
   }
 
-  // Handle stamp - convert SVG to PNG if needed
-  const [stampDataUrl, setStampDataUrl] = useState(null)
+  // Check if stamp is valid (should be a data URL)
+  const stampDataUrl = supplier?.stamp && 
+    (supplier.stamp.startsWith('data:image/png') || 
+     supplier.stamp.startsWith('data:image/jpeg') ||
+     supplier.stamp.startsWith('data:image/jpg'))
+    ? supplier.stamp
+    : null
   
-  useEffect(() => {
-    if (!supplier?.stamp) {
-      console.log('PDFDocument: No stamp found')
-      setStampDataUrl(null)
-      return
-    }
+  if (supplier?.stamp) {
+    console.log('PDFDocument: Processing stamp...')
+    console.log('PDFDocument: Stamp length:', supplier.stamp.length)
+    console.log('PDFDocument: Stamp starts with:', supplier.stamp.substring(0, 50))
     
-    // Check if it's already a PNG data URL
-    if (supplier.stamp.startsWith('data:image/png') || supplier.stamp.startsWith('data:image/jpeg')) {
-      console.log('PDFDocument: Using PNG/JPEG stamp directly')
-      setStampDataUrl(supplier.stamp)
-      return
-    }
-    
-    // If it's SVG (legacy format), convert to PNG
-    console.log('PDFDocument: Converting legacy SVG stamp to PNG...')
-    const img = new window.Image()
-    const svgBlob = new Blob([supplier.stamp], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(svgBlob)
-    
-    img.onload = () => {
-      // Preserve aspect ratio - your SVG is 509.8 x 195.69
-      // Scale to fit nicely in PDF (max width 150pt for A4)
-      const maxWidth = 150
-      const aspectRatio = img.height / img.width
-      const width = maxWidth
-      const height = maxWidth * aspectRatio
+    if (!stampDataUrl) {
+      console.error('❌ PDFDocument: Stamp is NOT in PNG/JPEG format!')
+      console.error('❌ This stamp will NOT appear in PDF')
+      console.error('❌ Please re-upload the stamp to convert it to PNG format')
+    } else {
+      console.log('✅ PDFDocument: Valid PNG/JPEG stamp found!')
+      console.log('✅ Stamp type:', stampDataUrl.substring(0, 25))
+      console.log('✅ This stamp WILL appear in PDF')
       
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.fillStyle = 'transparent'
-      ctx.fillRect(0, 0, width, height)
-      ctx.drawImage(img, 0, 0, width, height)
-      const pngDataUrl = canvas.toDataURL('image/png')
-      console.log('PDFDocument: SVG converted to PNG successfully, size:', width, 'x', height)
-      setStampDataUrl(pngDataUrl)
-      URL.revokeObjectURL(url)
+      // Test if the image can be loaded in browser
+      if (typeof window !== 'undefined') {
+        const testImg = new window.Image()
+        testImg.onload = () => {
+          console.log('✅ PDFDocument: Stamp image loaded successfully in browser')
+          console.log('✅ Image dimensions:', testImg.width, 'x', testImg.height)
+        }
+        testImg.onerror = () => {
+          console.error('❌ PDFDocument: Stamp image FAILED to load in browser!')
+          console.error('❌ The image data might be corrupted')
+        }
+        testImg.src = stampDataUrl
+      }
     }
-    
-    img.onerror = () => {
-      console.error('PDFDocument: Failed to convert SVG stamp')
-      URL.revokeObjectURL(url)
-      setStampDataUrl(null)
-    }
-    
-    img.src = url
-  }, [supplier?.stamp])
+  } else {
+    console.log('PDFDocument: No stamp provided')
+  }
 
   return (
     <Document>
@@ -342,7 +327,13 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
 
         {/* Stamp at bottom right */}
         {stampDataUrl && (
-          <Image src={stampDataUrl} style={styles.stamp} />
+          <View style={styles.stamp}>
+            <Image 
+              src={stampDataUrl} 
+              style={{ width: '100%', height: 'auto' }}
+              cache={false}
+            />
+          </View>
         )}
       </Page>
     </Document>

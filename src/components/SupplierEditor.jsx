@@ -65,10 +65,11 @@ const SupplierEditor = () => {
       return
     }
 
-    // Validate file size (max 500KB for images, 100KB for SVG)
-    const maxSize = file.type.startsWith('image/png') || file.type.startsWith('image/jpeg') ? 500 * 1024 : 100 * 1024
+    // Validate file size (max 2MB for images to allow high-quality uploads, 200KB for SVG)
+    const maxSize = file.type.startsWith('image/png') || file.type.startsWith('image/jpeg') ? 2 * 1024 * 1024 : 200 * 1024
     if (file.size > maxSize) {
-      showAlert('File Too Large', 'Stamp file is too large.', 'error')
+      const maxSizeMB = file.type.startsWith('image/') ? '2MB' : '200KB'
+      showAlert('File Too Large', `Stamp file is too large. Maximum size: ${maxSizeMB}`, 'error')
       return
     }
 
@@ -89,11 +90,41 @@ const SupplierEditor = () => {
           showAlert('Warning', 'Stamp uploaded as SVG. May have compatibility issues in PDFs.', 'warning')
         }
       } else {
-        // For PNG/JPG, read as data URL
+        // For PNG/JPG, optimize resolution for PDF rendering
         const reader = new FileReader()
-        reader.onload = (event) => {
-          handleInputChange('stamp', event.target.result)
-          showAlert('Success', 'Stamp uploaded successfully.', 'success')
+        reader.onload = async (event) => {
+          const img = new window.Image()
+          img.onload = () => {
+            // Target width for high-quality PDF rendering
+            const TARGET_WIDTH = 450 // 3x scale of 150pt display size
+            const aspectRatio = img.height / img.width
+            
+            // Only resize if significantly different from target
+            if (Math.abs(img.width - TARGET_WIDTH) > 50) {
+              const canvas = document.createElement('canvas')
+              canvas.width = TARGET_WIDTH
+              canvas.height = TARGET_WIDTH * aspectRatio
+              
+              const ctx = canvas.getContext('2d')
+              ctx.imageSmoothingEnabled = true
+              ctx.imageSmoothingQuality = 'high'
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+              
+              const optimizedDataUrl = canvas.toDataURL('image/png', 1.0)
+              console.log(`PNG optimized: ${canvas.width}x${canvas.height}px (${optimizedDataUrl.length} chars)`)
+              handleInputChange('stamp', optimizedDataUrl)
+              showAlert('Success', 'Stamp uploaded and optimized for PDF.', 'success')
+            } else {
+              // Image is already at good resolution
+              console.log(`PNG uploaded: ${img.width}x${img.height}px (${event.target.result.length} chars)`)
+              handleInputChange('stamp', event.target.result)
+              showAlert('Success', 'Stamp uploaded successfully.', 'success')
+            }
+          }
+          img.onerror = () => {
+            showAlert('Error', 'Error processing image file.', 'error')
+          }
+          img.src = event.target.result
         }
         reader.onerror = () => {
           showAlert('Error', 'Error reading image file.', 'error')
@@ -106,7 +137,7 @@ const SupplierEditor = () => {
     }
   }
 
-  // Helper function to convert SVG to PNG
+  // Helper function to convert SVG to PNG at high resolution
   const convertSvgToPng = (svgString) => {
     return new Promise((resolve) => {
       try {
@@ -115,27 +146,36 @@ const SupplierEditor = () => {
         const url = URL.createObjectURL(svgBlob)
         
         img.onload = () => {
-          // Preserve aspect ratio - scale to max width 150pt
-          const maxWidth = 150
+          // High-quality conversion: 3x scale for crisp rendering in PDFs
+          // PDF will display at ~150pt width, so we render at 450px for clarity
+          const SCALE_FACTOR = 3
+          const pdfDisplayWidth = 150
           const aspectRatio = img.height / img.width
-          const width = maxWidth
-          const height = maxWidth * aspectRatio
+          const canvasWidth = pdfDisplayWidth * SCALE_FACTOR
+          const canvasHeight = canvasWidth * aspectRatio
           
           const canvas = document.createElement('canvas')
-          canvas.width = width
-          canvas.height = height
+          canvas.width = canvasWidth
+          canvas.height = canvasHeight
           
           const ctx = canvas.getContext('2d')
-          ctx.fillStyle = 'transparent'
-          ctx.fillRect(0, 0, width, height)
-          ctx.drawImage(img, 0, 0, width, height)
+          // Transparent background for stamps
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+          // Use high-quality image rendering
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = 'high'
+          ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
           
-          const pngDataUrl = canvas.toDataURL('image/png')
+          // Convert to PNG with high quality
+          const pngDataUrl = canvas.toDataURL('image/png', 1.0)
           URL.revokeObjectURL(url)
+          
+          console.log(`SVG converted to PNG: ${canvasWidth}x${canvasHeight}px (${pngDataUrl.length} chars)`)
           resolve(pngDataUrl)
         }
         
         img.onerror = () => {
+          console.error('Failed to load SVG for conversion')
           URL.revokeObjectURL(url)
           resolve(null)
         }
@@ -347,20 +387,30 @@ const SupplierEditor = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload SVG Stamp (Optional)
+                    Upload Company Stamp (Optional)
                   </label>
                   <p className="text-xs text-gray-500 mb-3">
-                    Upload an SVG file of your company stamp or logo. This will appear on PDFs for invoices and inspection requests. Max size: 100KB.
+                    Upload your company stamp or logo. Accepts SVG (best quality), PNG, or JPG. Images are automatically optimized for crisp PDF rendering. Max size: 2MB for PNG/JPG, 200KB for SVG.
                   </p>
                   
                   {supplier.stamp ? (
                     <div className="space-y-3">
                       <div className="bg-gray-50 border border-gray-200 rounded-md p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div 
-                            className="w-20 h-20 border border-gray-300 bg-white rounded flex items-center justify-center p-2"
-                            dangerouslySetInnerHTML={{ __html: supplier.stamp }}
-                          />
+                          <div className="w-20 h-20 border border-gray-300 bg-white rounded flex items-center justify-center p-2">
+                            {supplier.stamp.startsWith('data:image/') ? (
+                              <img 
+                                src={supplier.stamp} 
+                                alt="Company Stamp" 
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            ) : (
+                              <div 
+                                className="max-w-full max-h-full"
+                                dangerouslySetInnerHTML={{ __html: supplier.stamp }}
+                              />
+                            )}
+                          </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">Stamp uploaded</p>
                             <p className="text-xs text-gray-500">This stamp will appear on PDFs</p>
@@ -378,7 +428,7 @@ const SupplierEditor = () => {
                         Replace Stamp
                         <input
                           type="file"
-                          accept=".svg,image/svg+xml"
+                          accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
                           onChange={handleStampUpload}
                           className="hidden"
                         />
@@ -386,10 +436,10 @@ const SupplierEditor = () => {
                     </div>
                   ) : (
                     <label className="inline-block px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 font-medium text-sm transition-colors cursor-pointer">
-                      Upload SVG Stamp
+                      Upload Stamp
                       <input
                         type="file"
-                        accept=".svg,image/svg+xml"
+                        accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
                         onChange={handleStampUpload}
                         className="hidden"
                       />
