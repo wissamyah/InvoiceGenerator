@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import db from '../lib/instantdb'
 import { useModal } from '../contexts/ModalContext'
 
 const ClientList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ clients: {} })
-  const { showAlert, showPasswordPrompt } = useModal()
+  const { showPasswordPrompt } = useModal()
 
   const deleteClient = async (id) => {
     const password = await showPasswordPrompt(
@@ -17,13 +18,13 @@ const ClientList = () => {
         await db.transact([
           db.tx.clients[id].delete()
         ])
-        showAlert('Success', 'Client deleted successfully.', 'success')
+        toast.success('Client deleted successfully.')
       } catch (error) {
         console.error('Error deleting client:', error)
-        showAlert('Error', 'Error deleting client. Please try again.', 'error')
+        toast.error('Error deleting client. Please try again.')
       }
     } else if (password) {
-      showAlert('Error', 'Incorrect password.', 'error')
+      toast.error('Incorrect password.')
     }
   }
 

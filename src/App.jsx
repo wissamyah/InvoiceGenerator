@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, createContext, useContext } from 'react'
+import { Toaster } from 'sonner'
 import Home from './components/Home'
 import InvoiceEditor from './components/InvoiceEditor'
 import InvoiceList from './components/InvoiceList'
@@ -104,6 +105,7 @@ function App() {
   return (
     <Router>
       <ModalProvider>
+        <Toaster position="top-right" richColors />
         <UnsavedChangesContext.Provider value={{ hasUnsavedChanges, setHasUnsavedChanges }}>
           <div className="min-h-screen bg-gray-100">
             <Navigation />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import db, { id as generateId } from '../lib/instantdb'
 import { useUnsavedChanges } from '../App'
 import { useModal } from '../contexts/ModalContext'
@@ -10,7 +11,7 @@ const SupplierEditor = () => {
   const { data } = db.useQuery({ suppliers: {} })
   const initialSupplierRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
-  const { showAlert, showConfirm } = useModal()
+  const { showConfirm } = useModal()
   const [isLoaded, setIsLoaded] = useState(false)
 
   const [supplier, setSupplier] = useState({
@@ -61,7 +62,7 @@ const SupplierEditor = () => {
 
     // Validate file type
     if (file.type !== 'image/svg+xml' && !file.type.startsWith('image/')) {
-      showAlert('Invalid File', 'Please upload an SVG or image file.', 'error')
+      toast.error('Please upload an SVG or image file.')
       return
     }
 
@@ -69,7 +70,7 @@ const SupplierEditor = () => {
     const maxSize = file.type.startsWith('image/png') || file.type.startsWith('image/jpeg') ? 2 * 1024 * 1024 : 200 * 1024
     if (file.size > maxSize) {
       const maxSizeMB = file.type.startsWith('image/') ? '2MB' : '200KB'
-      showAlert('File Too Large', `Stamp file is too large. Maximum size: ${maxSizeMB}`, 'error')
+      toast.error(`Stamp file is too large. Maximum size: ${maxSizeMB}`)
       return
     }
 
@@ -83,11 +84,11 @@ const SupplierEditor = () => {
         
         if (pngDataUrl) {
           handleInputChange('stamp', pngDataUrl)
-          showAlert('Success', 'Stamp uploaded and converted to PNG for PDF compatibility.', 'success')
+          toast.success('Stamp uploaded and converted to PNG for PDF compatibility.')
         } else {
           // Fallback to storing SVG if conversion fails
           handleInputChange('stamp', svgText)
-          showAlert('Warning', 'Stamp uploaded as SVG. May have compatibility issues in PDFs.', 'warning')
+          toast.warning('Stamp uploaded as SVG. May have compatibility issues in PDFs.')
         }
       } else {
         // For PNG/JPG, optimize resolution for PDF rendering
@@ -112,26 +113,26 @@ const SupplierEditor = () => {
               
               const optimizedDataUrl = canvas.toDataURL('image/png', 1.0)
               handleInputChange('stamp', optimizedDataUrl)
-              showAlert('Success', 'Stamp uploaded and optimized for PDF.', 'success')
+              toast.success('Stamp uploaded and optimized for PDF.')
             } else {
               // Image is already at good resolution
               handleInputChange('stamp', event.target.result)
-              showAlert('Success', 'Stamp uploaded successfully.', 'success')
+              toast.success('Stamp uploaded successfully.')
             }
           }
           img.onerror = () => {
-            showAlert('Error', 'Error processing image file.', 'error')
+            toast.error('Error processing image file.')
           }
           img.src = event.target.result
         }
         reader.onerror = () => {
-          showAlert('Error', 'Error reading image file.', 'error')
+          toast.error('Error reading image file.')
         }
         reader.readAsDataURL(file)
       }
     } catch (error) {
       console.error('Error processing stamp file:', error)
-      showAlert('Error', 'Error processing stamp file. Please try again.', 'error')
+      toast.error('Error processing stamp file. Please try again.')
     }
   }
 
@@ -192,11 +193,11 @@ const SupplierEditor = () => {
   const handleSave = async () => {
     // Validation
     if (!supplier.name?.trim()) {
-      showAlert('Validation Error', 'Supplier name is required.', 'error')
+      toast.error('Supplier name is required.')
       return
     }
     if (!supplier.email?.trim()) {
-      showAlert('Validation Error', 'Email is required.', 'error')
+      toast.error('Email is required.')
       return
     }
 
@@ -206,25 +207,25 @@ const SupplierEditor = () => {
         await db.transact([
           db.tx.suppliers[id].update(supplier)
         ])
-        showAlert('Success', 'Supplier updated successfully.', 'success')
+        toast.success('Supplier updated successfully.')
       } else {
         // Create new supplier
         const newId = generateId()
         await db.transact([
           db.tx.suppliers[newId].update(supplier)
         ])
-        showAlert('Success', 'Supplier created successfully.', 'success')
+        toast.success('Supplier created successfully.')
       }
-      
+
       initialSupplierRef.current = JSON.stringify(supplier)
       setHasUnsavedChanges(false)
-      
+
       setTimeout(() => {
         navigate('/management/suppliers')
       }, 500)
     } catch (error) {
       console.error('Error saving supplier:', error)
-      showAlert('Error', 'Error saving supplier. Please try again.', 'error')
+      toast.error('Error saving supplier. Please try again.')
     }
   }
 

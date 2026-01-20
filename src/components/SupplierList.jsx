@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import db from '../lib/instantdb'
 import { useModal } from '../contexts/ModalContext'
 
 const SupplierList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ suppliers: {} })
-  const { showAlert, showPasswordPrompt } = useModal()
+  const { showPasswordPrompt } = useModal()
 
   const deleteSupplier = async (id) => {
     const password = await showPasswordPrompt(
@@ -17,13 +18,13 @@ const SupplierList = () => {
         await db.transact([
           db.tx.suppliers[id].delete()
         ])
-        showAlert('Success', 'Supplier deleted successfully.', 'success')
+        toast.success('Supplier deleted successfully.')
       } catch (error) {
         console.error('Error deleting supplier:', error)
-        showAlert('Error', 'Error deleting supplier. Please try again.', 'error')
+        toast.error('Error deleting supplier. Please try again.')
       }
     } else if (password) {
-      showAlert('Error', 'Incorrect password.', 'error')
+      toast.error('Incorrect password.')
     }
   }
 

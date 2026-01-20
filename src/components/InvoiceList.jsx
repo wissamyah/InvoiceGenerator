@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import db from '../lib/instantdb'
 import PDFDocument from './PDFDocument'
@@ -8,7 +9,7 @@ import { useModal } from '../contexts/ModalContext'
 const InvoiceList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ invoices: {}, suppliers: {} })
-  const { showAlert, showPasswordPrompt } = useModal()
+  const { showPasswordPrompt } = useModal()
 
   const deleteInvoice = async (id) => {
     const password = await showPasswordPrompt(
@@ -20,13 +21,13 @@ const InvoiceList = () => {
         await db.transact([
           db.tx.invoices[id].delete()
         ])
-        showAlert('Success', 'Invoice deleted successfully.', 'success')
+        toast.success('Invoice deleted successfully.')
       } catch (error) {
         console.error('Error deleting invoice:', error)
-        showAlert('Error', 'Error deleting invoice. Please try again.', 'error')
+        toast.error('Error deleting invoice. Please try again.')
       }
     } else if (password) {
-      showAlert('Error', 'Incorrect password.', 'error')
+      toast.error('Incorrect password.')
     }
   }
 

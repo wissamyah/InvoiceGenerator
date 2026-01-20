@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import db, { id as generateId } from '../lib/instantdb'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import InspectionPDFDocument from './InspectionPDFDocument'
@@ -13,10 +14,12 @@ const InspectionRequestEditor = () => {
   const { data } = db.useQuery({ inspectionRequests: {}, suppliers: {}, clients: {}, clientSupplierLicenses: {} })
   const initialRequestRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
-  const { showAlert, showConfirm } = useModal()
+  const { showConfirm } = useModal()
   const [isLoaded, setIsLoaded] = useState(false)
   const [showNewLicenseInput, setShowNewLicenseInput] = useState(false)
   const [newLicenseValue, setNewLicenseValue] = useState('')
+  const [editingLicenseId, setEditingLicenseId] = useState(null)
+  const [editingLicenseValue, setEditingLicenseValue] = useState('')
 
   const [request, setRequest] = useState({
     supplierId: '',
@@ -60,23 +63,23 @@ const InspectionRequestEditor = () => {
   const handleSave = async () => {
     // Validation
     if (!request.supplierId) {
-      showAlert('Validation Error', 'Please select a supplier.', 'error')
+      toast.error('Please select a supplier.')
       return
     }
     if (!request.clientId) {
-      showAlert('Validation Error', 'Please select a client.', 'error')
+      toast.error('Please select a client.')
       return
     }
     if (!request.licenseNumber) {
-      showAlert('Validation Error', 'Please select or enter a license number.', 'error')
+      toast.error('Please select or enter a license number.')
       return
     }
     if (!request.inspectionDate) {
-      showAlert('Validation Error', 'Inspection date is required.', 'error')
+      toast.error('Inspection date is required.')
       return
     }
     if (!request.inspectionTime) {
-      showAlert('Validation Error', 'Inspection time is required.', 'error')
+      toast.error('Inspection time is required.')
       return
     }
 
@@ -86,7 +89,7 @@ const InspectionRequestEditor = () => {
         await db.transact([
           db.tx.inspectionRequests[id].update(request)
         ])
-        showAlert('Success', 'Inspection request updated successfully.', 'success')
+        toast.success('Inspection request updated successfully.')
       } else {
         // Create new request
         const newId = generateId()
@@ -96,18 +99,18 @@ const InspectionRequestEditor = () => {
             createdAt: new Date().toISOString()
           })
         ])
-        showAlert('Success', 'Inspection request created successfully.', 'success')
+        toast.success('Inspection request created successfully.')
       }
-      
+
       initialRequestRef.current = JSON.stringify(request)
       setHasUnsavedChanges(false)
-      
+
       setTimeout(() => {
         navigate('/inspection/requests')
       }, 500)
     } catch (error) {
       console.error('Error saving inspection request:', error)
-      showAlert('Error', 'Error saving inspection request. Please try again.', 'error')
+      toast.error('Error saving inspection request. Please try again.')
     }
   }
 
@@ -135,14 +138,14 @@ const InspectionRequestEditor = () => {
 
   const handleAddNewLicense = async () => {
     const licenseNumber = newLicenseValue.trim()
-    
+
     if (!licenseNumber) {
-      showAlert('Validation Error', 'License number is required.', 'error')
+      toast.error('License number is required.')
       return
     }
 
     if (!request.clientId || !request.supplierId) {
-      showAlert('Validation Error', 'Please select a client and supplier first.', 'error')
+      toast.error('Please select a client and supplier first.')
       return
     }
 
@@ -155,18 +158,84 @@ const InspectionRequestEditor = () => {
           licenseNumber: licenseNumber
         })
       ])
-      
+
       // Set the newly created license as selected
       handleInputChange('licenseNumber', licenseNumber)
-      
+
       // Reset the input state
       setNewLicenseValue('')
       setShowNewLicenseInput(false)
-      
-      showAlert('Success', 'License added successfully.', 'success')
+
+      toast.success('License added successfully.')
     } catch (error) {
       console.error('Error adding license:', error)
-      showAlert('Error', 'Error adding license. Please try again.', 'error')
+      toast.error('Error adding license. Please try again.')
+    }
+  }
+
+  const handleStartEditLicense = (license) => {
+    setEditingLicenseId(license.id)
+    setEditingLicenseValue(license.licenseNumber)
+  }
+
+  const handleCancelEditLicense = () => {
+    setEditingLicenseId(null)
+    setEditingLicenseValue('')
+  }
+
+  const handleSaveEditLicense = async () => {
+    const licenseNumber = editingLicenseValue.trim()
+
+    if (!licenseNumber) {
+      toast.error('License number is required.')
+      return
+    }
+
+    try {
+      const oldLicense = availableLicenses.find(l => l.id === editingLicenseId)
+      await db.transact([
+        db.tx.clientSupplierLicenses[editingLicenseId].update({
+          licenseNumber: licenseNumber
+        })
+      ])
+
+      // If the edited license was selected, update the selection
+      if (request.licenseNumber === oldLicense?.licenseNumber) {
+        handleInputChange('licenseNumber', licenseNumber)
+      }
+
+      setEditingLicenseId(null)
+      setEditingLicenseValue('')
+
+      toast.success('License updated successfully.')
+    } catch (error) {
+      console.error('Error updating license:', error)
+      toast.error('Error updating license. Please try again.')
+    }
+  }
+
+  const handleDeleteLicense = async (license) => {
+    const confirmed = await showConfirm(
+      'Delete License',
+      `Are you sure you want to delete license "${license.licenseNumber}"?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      await db.transact([
+        db.tx.clientSupplierLicenses[license.id].delete()
+      ])
+
+      // If the deleted license was selected, clear the selection
+      if (request.licenseNumber === license.licenseNumber) {
+        handleInputChange('licenseNumber', '')
+      }
+
+      toast.success('License deleted successfully.')
+    } catch (error) {
+      console.error('Error deleting license:', error)
+      toast.error('Error deleting license. Please try again.')
     }
   }
 
@@ -257,7 +326,10 @@ Request for information`
                 </label>
                 <select
                   value={request.supplierId}
-                  onChange={(e) => handleInputChange('supplierId', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('supplierId', e.target.value)
+                    handleInputChange('licenseNumber', '')
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
                   <option value="">Select a supplier</option>
@@ -316,68 +388,135 @@ Request for information`
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     License Number <span className="text-red-500">*</span>
                   </label>
-                  
-                  {!showNewLicenseInput ? (
-                    <>
-                      <select
-                        value={request.licenseNumber}
-                        onChange={(e) => {
-                          if (e.target.value === '__new__') {
-                            setShowNewLicenseInput(true)
-                          } else {
-                            handleInputChange('licenseNumber', e.target.value)
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
-                      >
-                        <option value="">Select a license</option>
-                        {availableLicenses.map(license => (
-                          <option key={license.id} value={license.licenseNumber}>
-                            {license.licenseNumber}
-                          </option>
-                        ))}
-                        <option value="__new__" className="font-medium text-blue-600">
-                          + Add New License
-                        </option>
-                      </select>
-                      {availableLicenses.length === 0 && (
-                        <p className="mt-1 text-sm text-gray-500">
-                          No licenses available for this client-supplier combination.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newLicenseValue}
-                          onChange={(e) => setNewLicenseValue(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              handleAddNewLicense()
-                            }
-                          }}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
-                          placeholder="Enter new license number"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleAddNewLicense}
-                          className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+
+                  {/* License List */}
+                  {availableLicenses.length > 0 && (
+                    <div className="border border-gray-300 rounded-md mb-2 max-h-48 overflow-y-auto">
+                      {availableLicenses.map(license => (
+                        <div
+                          key={license.id}
+                          className={`flex items-center justify-between px-3 py-2 border-b border-gray-200 last:border-b-0 ${
+                            request.licenseNumber === license.licenseNumber ? 'bg-gray-100' : 'hover:bg-gray-50'
+                          }`}
                         >
-                          Add
-                        </button>
-                        <button
-                          onClick={() => {
+                          {editingLicenseId === license.id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <input
+                                type="text"
+                                value={editingLicenseValue}
+                                onChange={(e) => setEditingLicenseValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveEditLicense()
+                                  if (e.key === 'Escape') handleCancelEditLicense()
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                autoFocus
+                              />
+                              <button
+                                onClick={handleSaveEditLicense}
+                                className="p-1 text-green-600 hover:text-green-800"
+                                title="Save"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={handleCancelEditLicense}
+                                className="p-1 text-gray-500 hover:text-gray-700"
+                                title="Cancel"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleInputChange('licenseNumber', license.licenseNumber)}
+                                className="flex-1 text-left text-sm"
+                              >
+                                <span className={request.licenseNumber === license.licenseNumber ? 'font-medium' : ''}>
+                                  {license.licenseNumber}
+                                </span>
+                                {request.licenseNumber === license.licenseNumber && (
+                                  <span className="ml-2 text-xs text-gray-500">(selected)</span>
+                                )}
+                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleStartEditLicense(license)}
+                                  className="p-1 text-gray-500 hover:text-blue-600"
+                                  title="Edit"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteLicense(license)}
+                                  className="p-1 text-gray-500 hover:text-red-600"
+                                  title="Delete"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {availableLicenses.length === 0 && !showNewLicenseInput && (
+                    <p className="mb-2 text-sm text-gray-500">
+                      No licenses available for this client-supplier combination.
+                    </p>
+                  )}
+
+                  {/* Add New License */}
+                  {!showNewLicenseInput ? (
+                    <button
+                      onClick={() => setShowNewLicenseInput(true)}
+                      className="w-full px-3 py-2 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
+                    >
+                      + Add New License
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newLicenseValue}
+                        onChange={(e) => setNewLicenseValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAddNewLicense()
+                          if (e.key === 'Escape') {
                             setShowNewLicenseInput(false)
                             setNewLicenseValue('')
-                          }}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                        placeholder="Enter new license number"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleAddNewLicense}
+                        className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 text-sm font-medium transition-colors"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNewLicenseInput(false)
+                          setNewLicenseValue('')
+                        }}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
                 </div>

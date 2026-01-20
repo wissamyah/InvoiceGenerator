@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import db, { id as generateId } from '../lib/instantdb'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import PDFDocument from './PDFDocument'
@@ -14,7 +15,7 @@ const InvoiceEditor = () => {
   const { data } = db.useQuery({ invoices: {}, suppliers: {}, clients: {} })
   const initialInvoiceRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
-  const { showAlert, showConfirm } = useModal()
+  const { showConfirm } = useModal()
   const [isNavigating, setIsNavigating] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false) // Track if invoice has been loaded
   
@@ -252,7 +253,7 @@ const InvoiceEditor = () => {
         ])
         setHasUnsavedChanges(false) // Clear unsaved changes flag
         setIsNavigating(false)
-        showAlert('Success', 'Invoice updated successfully!', 'success')
+        toast.success('Invoice updated successfully!')
       } else {
         // Create new invoice
         await db.transact([
@@ -260,12 +261,12 @@ const InvoiceEditor = () => {
         ])
         setHasUnsavedChanges(false) // Clear unsaved changes flag
         setIsNavigating(true)
-        showAlert('Success', 'Invoice created successfully!', 'success')
+        toast.success('Invoice created successfully!')
         navigate('/invoices')
       }
     } catch (error) {
       console.error('Error saving invoice:', error)
-      showAlert('Error', 'Error saving invoice. Please try again.', 'error')
+      toast.error('Error saving invoice. Please try again.')
     }
   }
 

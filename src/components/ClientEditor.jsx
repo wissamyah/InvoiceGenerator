@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import db, { id as generateId } from '../lib/instantdb'
 import { useUnsavedChanges } from '../App'
 import { useModal } from '../contexts/ModalContext'
@@ -10,7 +11,7 @@ const ClientEditor = () => {
   const { data } = db.useQuery({ clients: {}, suppliers: {}, clientSupplierLicenses: {} })
   const initialClientRef = useRef(null)
   const { hasUnsavedChanges, setHasUnsavedChanges } = useUnsavedChanges()
-  const { showAlert, showConfirm } = useModal()
+  const { showConfirm } = useModal()
   const [isLoaded, setIsLoaded] = useState(false)
   const [expandedSuppliers, setExpandedSuppliers] = useState({})
   const [newLicenseInputs, setNewLicenseInputs] = useState({})
@@ -56,7 +57,7 @@ const ClientEditor = () => {
   const handleSave = async () => {
     // Validation
     if (!client.name?.trim()) {
-      showAlert('Validation Error', 'Client name is required.', 'error')
+      toast.error('Client name is required.')
       return
     }
 
@@ -66,25 +67,25 @@ const ClientEditor = () => {
         await db.transact([
           db.tx.clients[id].update(client)
         ])
-        showAlert('Success', 'Client updated successfully.', 'success')
+        toast.success('Client updated successfully.')
       } else {
         // Create new client
         const newId = generateId()
         await db.transact([
           db.tx.clients[newId].update(client)
         ])
-        showAlert('Success', 'Client created successfully.', 'success')
+        toast.success('Client created successfully.')
       }
-      
+
       initialClientRef.current = JSON.stringify(client)
       setHasUnsavedChanges(false)
-      
+
       setTimeout(() => {
         navigate('/management/clients')
       }, 500)
     } catch (error) {
       console.error('Error saving client:', error)
-      showAlert('Error', 'Error saving client. Please try again.', 'error')
+      toast.error('Error saving client. Please try again.')
     }
   }
 
@@ -118,14 +119,14 @@ const ClientEditor = () => {
 
   const handleAddLicense = async (supplierId) => {
     const licenseNumber = newLicenseInputs[supplierId]?.trim()
-    
+
     if (!licenseNumber) {
-      showAlert('Validation Error', 'License number is required.', 'error')
+      toast.error('License number is required.')
       return
     }
 
     if (!id) {
-      showAlert('Save Client First', 'Please save the client before adding licenses.', 'error')
+      toast.error('Please save the client before adding licenses.')
       return
     }
 
@@ -138,17 +139,17 @@ const ClientEditor = () => {
           licenseNumber: licenseNumber
         })
       ])
-      
+
       // Clear input
       setNewLicenseInputs(prev => ({
         ...prev,
         [supplierId]: ''
       }))
-      
-      showAlert('Success', 'License added successfully.', 'success')
+
+      toast.success('License added successfully.')
     } catch (error) {
       console.error('Error adding license:', error)
-      showAlert('Error', 'Error adding license. Please try again.', 'error')
+      toast.error('Error adding license. Please try again.')
     }
   }
 
@@ -164,10 +165,10 @@ const ClientEditor = () => {
       await db.transact([
         db.tx.clientSupplierLicenses[licenseId].delete()
       ])
-      showAlert('Success', 'License deleted successfully.', 'success')
+      toast.success('License deleted successfully.')
     } catch (error) {
       console.error('Error deleting license:', error)
-      showAlert('Error', 'Error deleting license. Please try again.', 'error')
+      toast.error('Error deleting license. Please try again.')
     }
   }
 
