@@ -24,22 +24,31 @@ const SupplierEditor = () => {
     phone: '',
     vatNumber: '',
     cf: '',
+    bankName: '',
+    accountName: '',
+    iban: '',
+    bic: '',
     stamp: ''
   })
 
   useEffect(() => {
-    if (id && data?.suppliers) {
+    if (id && data?.suppliers && !isLoaded) {
       const existingSupplier = data.suppliers.find(s => s.id === id)
       if (existingSupplier) {
-        setSupplier(existingSupplier)
-        initialSupplierRef.current = JSON.stringify(existingSupplier)
+        const merged = { ...supplier, ...existingSupplier }
+        setSupplier(merged)
+        initialSupplierRef.current = JSON.stringify(merged)
         setIsLoaded(true)
       }
-    } else {
+    } else if (!id && !isLoaded) {
       initialSupplierRef.current = JSON.stringify(supplier)
       setIsLoaded(true)
     }
-  }, [id, data])
+  }, [id, data, isLoaded])
+
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false)
+  }, [setHasUnsavedChanges])
 
   useEffect(() => {
     if (isLoaded) {
@@ -374,6 +383,65 @@ const SupplierEditor = () => {
                       placeholder="Italy"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Details */}
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Bank Details</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bank Name
+                  </label>
+                  <input
+                    type="text"
+                    value={supplier.bankName}
+                    onChange={(e) => handleInputChange('bankName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    placeholder="e.g. Intesa Sanpaolo"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account Holder
+                  </label>
+                  <input
+                    type="text"
+                    value={supplier.accountName}
+                    onChange={(e) => handleInputChange('accountName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    placeholder="Account holder name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    IBAN
+                  </label>
+                  <input
+                    type="text"
+                    value={supplier.iban}
+                    onChange={(e) => handleInputChange('iban', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    placeholder="IT60X0542811101000000123456"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    BIC/SWIFT
+                  </label>
+                  <input
+                    type="text"
+                    value={supplier.bic}
+                    onChange={(e) => handleInputChange('bic', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    placeholder="BCITITMM"
+                  />
                 </div>
               </div>
             </div>

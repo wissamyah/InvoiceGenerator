@@ -208,6 +208,12 @@ const InvoiceEditor = () => {
           country: supplier.country || '',
           piva: supplier.vatNumber || '',
           cf: supplier.cf || ''
+        },
+        bankDetails: {
+          bankName: supplier.bankName || '',
+          accountName: supplier.accountName || '',
+          iban: supplier.iban || '',
+          bic: supplier.bic || ''
         }
       })
     } else {

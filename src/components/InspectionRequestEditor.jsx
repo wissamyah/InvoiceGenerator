@@ -32,18 +32,23 @@ const InspectionRequestEditor = () => {
   })
 
   useEffect(() => {
-    if (id && data?.inspectionRequests) {
+    if (id && data?.inspectionRequests && !isLoaded) {
       const existingRequest = data.inspectionRequests.find(r => r.id === id)
       if (existingRequest) {
-        setRequest(existingRequest)
-        initialRequestRef.current = JSON.stringify(existingRequest)
+        const merged = { ...request, ...existingRequest }
+        setRequest(merged)
+        initialRequestRef.current = JSON.stringify(merged)
         setIsLoaded(true)
       }
-    } else {
+    } else if (!id && !isLoaded) {
       initialRequestRef.current = JSON.stringify(request)
       setIsLoaded(true)
     }
-  }, [id, data])
+  }, [id, data, isLoaded])
+
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false)
+  }, [setHasUnsavedChanges])
 
   useEffect(() => {
     if (isLoaded) {

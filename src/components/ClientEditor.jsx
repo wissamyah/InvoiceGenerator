@@ -26,18 +26,23 @@ const ClientEditor = () => {
   })
 
   useEffect(() => {
-    if (id && data?.clients) {
+    if (id && data?.clients && !isLoaded) {
       const existingClient = data.clients.find(c => c.id === id)
       if (existingClient) {
-        setClient(existingClient)
-        initialClientRef.current = JSON.stringify(existingClient)
+        const merged = { ...client, ...existingClient }
+        setClient(merged)
+        initialClientRef.current = JSON.stringify(merged)
         setIsLoaded(true)
       }
-    } else {
+    } else if (!id && !isLoaded) {
       initialClientRef.current = JSON.stringify(client)
       setIsLoaded(true)
     }
-  }, [id, data])
+  }, [id, data, isLoaded])
+
+  useEffect(() => {
+    return () => setHasUnsavedChanges(false)
+  }, [setHasUnsavedChanges])
 
   useEffect(() => {
     if (isLoaded) {
