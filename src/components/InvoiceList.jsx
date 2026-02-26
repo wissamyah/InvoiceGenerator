@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -10,6 +11,7 @@ const InvoiceList = () => {
   const navigate = useNavigate()
   const { data, isLoading } = db.useQuery({ invoices: {}, suppliers: {} })
   const { showPasswordPrompt } = useModal()
+  const [search, setSearch] = useState('')
 
   const deleteInvoice = async (id) => {
     const password = await showPasswordPrompt(
@@ -78,7 +80,7 @@ const InvoiceList = () => {
       : format(new Date(), 'yyyy-MM-dd')
     
     // Document type
-    const docType = invoice.documentType === 'proforma' ? 'Proforma' : 'Invoice'
+    const docType = invoice.documentType === 'proforma' ? 'Proforma' : invoice.documentType === 'packing_list' ? 'Packing_List' : 'Invoice'
     
     // Clean and combine: FromName_to_ToName_Invoice_2024-11-18.pdf
     const cleanString = (str) => str.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_')
@@ -94,7 +96,28 @@ const InvoiceList = () => {
     )
   }
 
-  const invoices = data?.invoices || []
+  const allInvoices = data?.invoices || []
+
+  const getTypeLabel = (inv) =>
+    inv.documentType === 'proforma' ? 'Proforma' : inv.documentType === 'packing_list' ? 'Packing List' : 'Invoice'
+
+  const getTotalText = (inv) => {
+    if (inv.documentType === 'packing_list') {
+      return `${(inv.lineItems || []).reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toLocaleString()} KG`
+    }
+    return formatCurrency(calculateTotal(inv), inv.currency || 'EUR')
+  }
+
+  const invoices = allInvoices.filter((inv) => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    const number = (inv.invoiceNumber || '').toLowerCase()
+    const type = getTypeLabel(inv).toLowerCase()
+    const date = inv.date ? format(new Date(inv.date), 'dd/MM/yyyy') : ''
+    const from = (inv.from?.name || '').toLowerCase()
+    const total = getTotalText(inv).toLowerCase()
+    return number.includes(q) || type.includes(q) || date.includes(q) || from.includes(q) || total.includes(q)
+  })
 
   return (
     <div className="p-4 md:p-6">
@@ -108,6 +131,18 @@ const InvoiceList = () => {
             Create New Invoice
           </button>
         </div>
+
+        {allInvoices.length > 0 && (
+          <div className="mb-4">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by invoice #, type, date, from, or total..."
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+            />
+          </div>
+        )}
 
         {invoices.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
@@ -135,15 +170,19 @@ const InvoiceList = () => {
                         #{invoice.invoiceNumber || 'N/A'}
                       </p>
                       <span className={`inline-block px-2 py-1 rounded-md text-xs font-medium ${
-                        invoice.documentType === 'proforma' 
-                          ? 'bg-gray-100 text-gray-700' 
+                        invoice.documentType === 'proforma'
+                          ? 'bg-gray-100 text-gray-700'
+                          : invoice.documentType === 'packing_list'
+                          ? 'bg-gray-200 text-gray-800'
                           : 'bg-gray-900 text-white'
                       }`}>
-                        {invoice.documentType === 'proforma' ? 'Proforma' : 'Invoice'}
+                        {invoice.documentType === 'proforma' ? 'Proforma' : invoice.documentType === 'packing_list' ? 'Packing List' : 'Invoice'}
                       </span>
                     </div>
                     <p className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
+                      {invoice.documentType === 'packing_list'
+                        ? `${(invoice.lineItems || []).reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toLocaleString()} KG`
+                        : formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
                     </p>
                   </div>
                   
@@ -217,11 +256,13 @@ const InvoiceList = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-                        invoice.documentType === 'proforma' 
-                          ? 'bg-gray-100 text-gray-700' 
+                        invoice.documentType === 'proforma'
+                          ? 'bg-gray-100 text-gray-700'
+                          : invoice.documentType === 'packing_list'
+                          ? 'bg-gray-200 text-gray-800'
                           : 'bg-gray-900 text-white'
                       }`}>
-                        {invoice.documentType === 'proforma' ? 'Proforma' : 'Invoice'}
+                        {invoice.documentType === 'proforma' ? 'Proforma' : invoice.documentType === 'packing_list' ? 'Packing List' : 'Invoice'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
@@ -230,7 +271,9 @@ const InvoiceList = () => {
                     <td className="py-3 px-4 text-sm text-gray-900">{invoice.from?.name || 'N/A'}</td>
                     <td className="py-3 px-4 text-sm text-gray-900">{invoice.to?.name || 'N/A'}</td>
                     <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">
-                      {formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
+                      {invoice.documentType === 'packing_list'
+                        ? `${(invoice.lineItems || []).reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0).toLocaleString()} KG`
+                        : formatCurrency(calculateTotal(invoice), invoice.currency || 'EUR')}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">

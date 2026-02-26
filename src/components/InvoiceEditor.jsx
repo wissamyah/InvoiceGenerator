@@ -47,7 +47,7 @@ const InvoiceEditor = () => {
       country: ''
     },
     lineItems: [
-      { description: '', quantity: 0, unit: 'None', rate: 0, amount: 0 }
+      { description: '', quantity: 0, unit: 'None', rate: 0, amount: 0, weight: 0 }
     ],
     bankDetails: {
       bankName: '',
@@ -149,6 +149,11 @@ const InvoiceEditor = () => {
 
   const { subtotal, vatAmount, total } = calculateTotals()
 
+  // Calculate total weight for packing list
+  const calculateTotalWeight = () => {
+    return invoice.lineItems.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0)
+  }
+
   // Update line item
   const updateLineItem = (index, field, value) => {
     const newLineItems = [...invoice.lineItems]
@@ -156,11 +161,13 @@ const InvoiceEditor = () => {
     const updatedItem = { ...newLineItems[index] }
     
     // Parse numeric fields
-    if (field === 'quantity' || field === 'rate') {
+    if (field === 'quantity' || field === 'rate' || field === 'weight') {
       updatedItem[field] = parseFloat(value) || 0
-      const quantity = parseFloat(updatedItem.quantity) || 0
-      const rate = parseFloat(updatedItem.rate) || 0
-      updatedItem.amount = calculateLineAmount(quantity, rate)
+      if (field === 'quantity' || field === 'rate') {
+        const quantity = parseFloat(updatedItem.quantity) || 0
+        const rate = parseFloat(updatedItem.rate) || 0
+        updatedItem.amount = calculateLineAmount(quantity, rate)
+      }
     } else {
       updatedItem[field] = value
     }
@@ -173,7 +180,7 @@ const InvoiceEditor = () => {
   const addLineItem = () => {
     setInvoice({
       ...invoice,
-      lineItems: [...invoice.lineItems, { description: '', quantity: 0, unit: 'None', rate: 0, amount: 0 }]
+      lineItems: [...invoice.lineItems, { description: '', quantity: 0, unit: 'None', rate: 0, amount: 0, weight: 0 }]
     })
   }
 
@@ -280,7 +287,7 @@ const InvoiceEditor = () => {
   const formatCurrency = (amount) => {
     const symbol = invoice.currency === 'EUR' ? '€' : '$'
     const numAmount = parseFloat(amount) || 0
-    return `${symbol}${numAmount.toFixed(2)}`
+    return `${symbol}${numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   // Format date to EU format (DD/MM/YYYY)
@@ -312,7 +319,7 @@ const InvoiceEditor = () => {
       : format(new Date(), 'yyyy-MM-dd')
     
     // Document type
-    const docType = invoice.documentType === 'proforma' ? 'Proforma' : 'Invoice'
+    const docType = invoice.documentType === 'proforma' ? 'Proforma' : invoice.documentType === 'packing_list' ? 'Packing_List' : 'Invoice'
     
     // Clean and combine: FromName_to_ToName_Invoice_2024-11-18.pdf
     const cleanString = (str) => str.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_')
@@ -328,11 +335,11 @@ const InvoiceEditor = () => {
           {/* Header */}
           <div className="border-b-2 border-gray-800 pb-3 md:pb-4 mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
-              {invoice.documentType === 'proforma' ? 'PROFORMA INVOICE' : 'INVOICE'}
+              {invoice.documentType === 'proforma' ? 'PROFORMA INVOICE' : invoice.documentType === 'packing_list' ? 'PACKING LIST' : 'INVOICE'}
             </h1>
             <div className="text-left sm:text-right text-sm">
               <div className="text-gray-500 text-xs uppercase tracking-wide mb-1">
-                {invoice.documentType === 'proforma' ? 'Proforma Invoice Details' : 'Invoice Details'}
+                {invoice.documentType === 'proforma' ? 'Proforma Invoice Details' : invoice.documentType === 'packing_list' ? 'Packing List Details' : 'Invoice Details'}
               </div>
               <p className="text-gray-900 font-semibold">#{invoice.invoiceNumber || 'N/A'}</p>
               <p className="text-gray-600">{formatDateEU(invoice.date)}</p>
@@ -372,19 +379,31 @@ const InvoiceEditor = () => {
                 <tr className="bg-gray-800 text-white">
                   <th className="text-left py-2 px-2 md:px-3">Description</th>
                   <th className="text-right py-2 px-2 md:px-3">Qty</th>
-                  <th className="text-right py-2 px-2 md:px-3">Unit</th>
-                  <th className="text-right py-2 px-2 md:px-3">Rate</th>
-                  <th className="text-right py-2 px-2 md:px-3">Amount</th>
+                  {invoice.documentType === 'packing_list' ? (
+                    <th className="text-right py-2 px-2 md:px-3">Weight (KG)</th>
+                  ) : (
+                    <>
+                      <th className="text-right py-2 px-2 md:px-3">Unit</th>
+                      <th className="text-right py-2 px-2 md:px-3">Rate</th>
+                      <th className="text-right py-2 px-2 md:px-3">Amount</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {invoice.lineItems.map((item, index) => (
                   <tr key={index} className="border-b border-gray-200">
                     <td className="py-2 px-2 md:px-3">{item.description || '-'}</td>
-                    <td className="text-right py-2 px-2 md:px-3">{item.quantity || 0}</td>
-                    <td className="text-right py-2 px-2 md:px-3">{item.unit === 'None' ? '' : item.unit}</td>
-                    <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.rate)}</td>
-                    <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.amount)}</td>
+                    <td className="text-right py-2 px-2 md:px-3">{(item.quantity || 0).toLocaleString()}</td>
+                    {invoice.documentType === 'packing_list' ? (
+                      <td className="text-right py-2 px-2 md:px-3">{(parseFloat(item.weight) || 0).toLocaleString()}</td>
+                    ) : (
+                      <>
+                        <td className="text-right py-2 px-2 md:px-3">{item.unit === 'None' ? '' : item.unit}</td>
+                        <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.rate)}</td>
+                        <td className="text-right py-2 px-2 md:px-3">{formatCurrency(item.amount)}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -394,20 +413,29 @@ const InvoiceEditor = () => {
           {/* Totals */}
           <div className="flex justify-end mb-4 md:mb-6">
             <div className="w-full sm:w-64">
-              <div className="flex justify-between py-2 text-xs md:text-sm">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-semibold">{formatCurrency(subtotal)}</span>
-              </div>
-              {invoice.vatEnabled && (
-                <div className="flex justify-between py-2 text-xs md:text-sm">
-                  <span className="text-gray-600">VAT ({invoice.vatRate}%):</span>
-                  <span className="font-semibold">{formatCurrency(vatAmount)}</span>
+              {invoice.documentType === 'packing_list' ? (
+                <div className="flex justify-between py-2 border-t-2 border-gray-800 font-bold text-base md:text-lg">
+                  <span>Total Weight:</span>
+                  <span>{calculateTotalWeight().toLocaleString()} KG</span>
                 </div>
+              ) : (
+                <>
+                  <div className="flex justify-between py-2 text-xs md:text-sm">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                  </div>
+                  {invoice.vatEnabled && (
+                    <div className="flex justify-between py-2 text-xs md:text-sm">
+                      <span className="text-gray-600">VAT ({invoice.vatRate}%):</span>
+                      <span className="font-semibold">{formatCurrency(vatAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-t-2 border-gray-800 font-bold text-base md:text-lg">
+                    <span>Total {invoice.shippingType}:</span>
+                    <span>{formatCurrency(total)}</span>
+                  </div>
+                </>
               )}
-              <div className="flex justify-between py-2 border-t-2 border-gray-800 font-bold text-base md:text-lg">
-                <span>Total {invoice.shippingType}:</span>
-                <span>{formatCurrency(total)}</span>
-              </div>
             </div>
           </div>
 
@@ -420,13 +448,15 @@ const InvoiceEditor = () => {
           )}
 
           {/* Bank Details */}
-          <div className="border-t pt-4 text-xs md:text-sm text-gray-700">
-            <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Bank Details:</h3>
-            {invoice.bankDetails.bankName && <p>Bank: {invoice.bankDetails.bankName}</p>}
-            <p>Account Name: {invoice.bankDetails.accountName || 'N/A'}</p>
-            <p>IBAN: {invoice.bankDetails.iban || 'N/A'}</p>
-            <p>BIC: {invoice.bankDetails.bic || 'N/A'}</p>
-          </div>
+          {invoice.documentType !== 'packing_list' && (
+            <div className="border-t pt-4 text-xs md:text-sm text-gray-700">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">Bank Details:</h3>
+              {invoice.bankDetails.bankName && <p>Bank: {invoice.bankDetails.bankName}</p>}
+              <p>Account Name: {invoice.bankDetails.accountName || 'N/A'}</p>
+              <p>IBAN: {invoice.bankDetails.iban || 'N/A'}</p>
+              <p>BIC: {invoice.bankDetails.bic || 'N/A'}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -459,12 +489,12 @@ const InvoiceEditor = () => {
             <div className="p-4 md:p-5 space-y-3 md:space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">Document Type</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setInvoice({ ...invoice, documentType: 'invoice' })}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                      invoice.documentType === 'invoice' 
-                        ? 'bg-gray-900 text-white' 
+                      invoice.documentType === 'invoice'
+                        ? 'bg-gray-900 text-white'
                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -473,12 +503,22 @@ const InvoiceEditor = () => {
                   <button
                     onClick={() => setInvoice({ ...invoice, documentType: 'proforma' })}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                      invoice.documentType === 'proforma' 
-                        ? 'bg-gray-900 text-white' 
+                      invoice.documentType === 'proforma'
+                        ? 'bg-gray-900 text-white'
                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     Proforma
+                  </button>
+                  <button
+                    onClick={() => setInvoice({ ...invoice, documentType: 'packing_list' })}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                      invoice.documentType === 'packing_list'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Packing List
                   </button>
                 </div>
               </div>
@@ -486,14 +526,14 @@ const InvoiceEditor = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    {invoice.documentType === 'proforma' ? 'Proforma Number' : 'Invoice Number'}
+                    {invoice.documentType === 'proforma' ? 'Proforma Number' : invoice.documentType === 'packing_list' ? 'Packing List Number' : 'Invoice Number'}
                   </label>
                   <input
                     type="text"
                     value={invoice.invoiceNumber}
                     onChange={(e) => setInvoice({ ...invoice, invoiceNumber: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                    placeholder={invoice.documentType === 'proforma' ? 'PRO-001' : 'INV-001'}
+                    placeholder={invoice.documentType === 'proforma' ? 'PRO-001' : invoice.documentType === 'packing_list' ? 'PL-001' : 'INV-001'}
                   />
                 </div>
                 <div>
@@ -507,58 +547,60 @@ const InvoiceEditor = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Currency</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setInvoice({ ...invoice, currency: 'EUR' })}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                        invoice.currency === 'EUR' 
-                          ? 'bg-gray-900 text-white' 
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      EUR €
-                    </button>
-                    <button
-                      onClick={() => setInvoice({ ...invoice, currency: 'USD' })}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                        invoice.currency === 'USD' 
-                          ? 'bg-gray-900 text-white' 
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      USD $
-                    </button>
+              {invoice.documentType !== 'packing_list' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Currency</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setInvoice({ ...invoice, currency: 'EUR' })}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                          invoice.currency === 'EUR'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        EUR €
+                      </button>
+                      <button
+                        onClick={() => setInvoice({ ...invoice, currency: 'USD' })}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                          invoice.currency === 'USD'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        USD $
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Shipping</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setInvoice({ ...invoice, shippingType: 'C&F' })}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                          invoice.shippingType === 'C&F'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        C&F
+                      </button>
+                      <button
+                        onClick={() => setInvoice({ ...invoice, shippingType: 'CIF' })}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                          invoice.shippingType === 'CIF'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        CIF
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Shipping</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setInvoice({ ...invoice, shippingType: 'C&F' })}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                        invoice.shippingType === 'C&F' 
-                          ? 'bg-gray-900 text-white' 
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      C&F
-                    </button>
-                    <button
-                      onClick={() => setInvoice({ ...invoice, shippingType: 'CIF' })}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                        invoice.shippingType === 'CIF' 
-                          ? 'bg-gray-900 text-white' 
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      CIF
-                    </button>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -741,50 +783,76 @@ const InvoiceEditor = () => {
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
                       placeholder="Item description"
                     />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Qty</label>
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                          placeholder="0"
-                        />
+                    {invoice.documentType === 'packing_list' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Qty</label>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Weight (KG)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.weight || 0}
+                            onChange={(e) => updateLineItem(index, 'weight', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                            placeholder="0.00"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Unit</label>
-                        <select
-                          value={item.unit}
-                          onChange={(e) => updateLineItem(index, 'unit', e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                        >
-                          <option value="None">—</option>
-                          <option value="KG">KG</option>
-                        </select>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Qty</label>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Unit</label>
+                          <select
+                            value={item.unit}
+                            onChange={(e) => updateLineItem(index, 'unit', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                          >
+                            <option value="None">—</option>
+                            <option value="KG">KG</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Rate</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={(e) => updateLineItem(index, 'rate', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Amount</label>
+                          <input
+                            type="number"
+                            value={item.amount}
+                            disabled
+                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-md bg-gray-100 text-gray-700 font-medium"
+                            placeholder="0.00"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Rate</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateLineItem(index, 'rate', e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Amount</label>
-                        <input
-                          type="number"
-                          value={item.amount}
-                          disabled
-                          className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-md bg-gray-100 text-gray-700 font-medium"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -792,35 +860,37 @@ const InvoiceEditor = () => {
           </div>
 
           {/* VAT Settings */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
-              <h3 className="text-sm font-medium text-gray-900">Tax Settings</h3>
-            </div>
-            <div className="p-4 md:p-5 space-y-3">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={invoice.vatEnabled}
-                  onChange={(e) => setInvoice({ ...invoice, vatEnabled: e.target.checked })}
-                  className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-400 cursor-pointer"
-                />
-                <span className="ml-2.5 text-sm text-gray-700">Enable VAT/Tax</span>
-              </label>
-              {invoice.vatEnabled && (
-                <div className="pt-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">VAT Rate (%)</label>
+          {invoice.documentType !== 'packing_list' && (
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
+                <h3 className="text-sm font-medium text-gray-900">Tax Settings</h3>
+              </div>
+              <div className="p-4 md:p-5 space-y-3">
+                <label className="flex items-center cursor-pointer">
                   <input
-                    type="number"
-                    step="0.01"
-                    value={invoice.vatRate}
-                    onChange={(e) => setInvoice({ ...invoice, vatRate: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                    placeholder="e.g., 20"
+                    type="checkbox"
+                    checked={invoice.vatEnabled}
+                    onChange={(e) => setInvoice({ ...invoice, vatEnabled: e.target.checked })}
+                    className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-400 cursor-pointer"
                   />
-                </div>
-              )}
+                  <span className="ml-2.5 text-sm text-gray-700">Enable VAT/Tax</span>
+                </label>
+                {invoice.vatEnabled && (
+                  <div className="pt-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">VAT Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={invoice.vatRate}
+                      onChange={(e) => setInvoice({ ...invoice, vatRate: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                      placeholder="e.g., 20"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Notes */}
           <div className="bg-white rounded-lg border border-gray-200">
@@ -839,41 +909,43 @@ const InvoiceEditor = () => {
           </div>
 
           {/* Bank Details */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
-              <h3 className="text-sm font-medium text-gray-900">Payment Information</h3>
+          {invoice.documentType !== 'packing_list' && (
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-gray-100">
+                <h3 className="text-sm font-medium text-gray-900">Payment Information</h3>
+              </div>
+              <div className="p-4 md:p-5 space-y-3">
+                <input
+                  type="text"
+                  value={invoice.bankDetails.bankName}
+                  onChange={(e) => updateNested('bankDetails', 'bankName', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                  placeholder="Bank Name"
+                />
+                <input
+                  type="text"
+                  value={invoice.bankDetails.accountName}
+                  onChange={(e) => updateNested('bankDetails', 'accountName', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                  placeholder="Account Holder"
+                />
+                <input
+                  type="text"
+                  value={invoice.bankDetails.iban}
+                  onChange={(e) => updateNested('bankDetails', 'iban', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                  placeholder="IBAN Number"
+                />
+                <input
+                  type="text"
+                  value={invoice.bankDetails.bic}
+                  onChange={(e) => updateNested('bankDetails', 'bic', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                  placeholder="BIC/SWIFT"
+                />
+              </div>
             </div>
-            <div className="p-4 md:p-5 space-y-3">
-              <input
-                type="text"
-                value={invoice.bankDetails.bankName}
-                onChange={(e) => updateNested('bankDetails', 'bankName', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                placeholder="Bank Name"
-              />
-              <input
-                type="text"
-                value={invoice.bankDetails.accountName}
-                onChange={(e) => updateNested('bankDetails', 'accountName', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                placeholder="Account Holder"
-              />
-              <input
-                type="text"
-                value={invoice.bankDetails.iban}
-                onChange={(e) => updateNested('bankDetails', 'iban', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                placeholder="IBAN Number"
-              />
-              <input
-                type="text"
-                value={invoice.bankDetails.bic}
-                onChange={(e) => updateNested('bankDetails', 'bic', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-                placeholder="BIC/SWIFT"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="sticky bottom-0 bg-white border-t p-4 md:p-5 -mx-4 md:-mx-8 mt-4 md:mt-5 rounded-b-lg">

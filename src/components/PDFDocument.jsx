@@ -153,8 +153,18 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
     vatRate: invoice?.vatRate || 0,
   }
 
-  const documentTitle = safeInvoice.documentType === 'proforma' ? 'PROFORMA INVOICE' : 'INVOICE'
-  const documentLabel = safeInvoice.documentType === 'proforma' ? 'PROFORMA INVOICE DETAILS' : 'INVOICE DETAILS'
+  const documentTitle = safeInvoice.documentType === 'proforma' ? 'PROFORMA INVOICE'
+    : safeInvoice.documentType === 'packing_list' ? 'PACKING LIST' : 'INVOICE'
+  const documentLabel = safeInvoice.documentType === 'proforma' ? 'PROFORMA INVOICE DETAILS'
+    : safeInvoice.documentType === 'packing_list' ? 'PACKING LIST DETAILS' : 'INVOICE DETAILS'
+
+  const isPackingList = safeInvoice.documentType === 'packing_list'
+
+  const totalWeight = safeInvoice.lineItems.reduce((sum, item) => sum + (parseFloat(item?.weight) || 0), 0)
+
+  const formatWeight = (n) => {
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  }
 
   const safeTotals = {
     subtotal: totals?.subtotal || 0,
@@ -165,7 +175,7 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
   const formatCurrency = (amount) => {
     const symbol = safeInvoice.currency === 'EUR' ? '€' : '$'
     const numAmount = parseFloat(amount) || 0
-    return `${symbol}${numAmount.toFixed(2)}`
+    return `${symbol}${numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   // Format date to EU format (DD/MM/YYYY)
@@ -234,44 +244,71 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
 
         {/* Line Items Table */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={styles.tableCol1}>Description</Text>
-            <Text style={styles.tableCol2}>Qty</Text>
-            <Text style={styles.tableCol3}>Unit</Text>
-            <Text style={styles.tableCol4}>Rate</Text>
-            <Text style={styles.tableCol5}>Amount</Text>
-          </View>
+          {isPackingList ? (
+            <View style={styles.tableHeader}>
+              <Text style={{ width: '50%' }}>Description</Text>
+              <Text style={{ width: '25%', textAlign: 'right' }}>Qty</Text>
+              <Text style={{ width: '25%', textAlign: 'right' }}>Weight (KG)</Text>
+            </View>
+          ) : (
+            <View style={styles.tableHeader}>
+              <Text style={styles.tableCol1}>Description</Text>
+              <Text style={styles.tableCol2}>Qty</Text>
+              <Text style={styles.tableCol3}>Unit</Text>
+              <Text style={styles.tableCol4}>Rate</Text>
+              <Text style={styles.tableCol5}>Amount</Text>
+            </View>
+          )}
           {safeInvoice.lineItems.map((item, index) => (
             <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableCol1}>{item?.description || '-'}</Text>
-              <Text style={styles.tableCol2}>{item?.quantity || 0}</Text>
-              <Text style={styles.tableCol3}>{item?.unit === 'None' ? '' : (item?.unit || '')}</Text>
-              <Text style={styles.tableCol4}>{formatCurrency(item?.rate || 0)}</Text>
-              <Text style={styles.tableCol5}>{formatCurrency(item?.amount || 0)}</Text>
+              {isPackingList ? (
+                <>
+                  <Text style={{ width: '50%' }}>{item?.description || '-'}</Text>
+                  <Text style={{ width: '25%', textAlign: 'right' }}>{(item?.quantity || 0).toLocaleString()}</Text>
+                  <Text style={{ width: '25%', textAlign: 'right' }}>{formatWeight(parseFloat(item?.weight) || 0)}</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.tableCol1}>{item?.description || '-'}</Text>
+                  <Text style={styles.tableCol2}>{(item?.quantity || 0).toLocaleString()}</Text>
+                  <Text style={styles.tableCol3}>{item?.unit === 'None' ? '' : (item?.unit || '')}</Text>
+                  <Text style={styles.tableCol4}>{formatCurrency(item?.rate || 0)}</Text>
+                  <Text style={styles.tableCol5}>{formatCurrency(item?.amount || 0)}</Text>
+                </>
+              )}
             </View>
           ))}
         </View>
 
         {/* Totals Section */}
         <View style={styles.totalsSection}>
-          <View style={styles.totalRow}>
-            <Text style={{ color: '#666' }}>Subtotal:</Text>
-            <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-              {formatCurrency(safeTotals.subtotal)}
-            </Text>
-          </View>
-          {safeInvoice.vatEnabled && (
-            <View style={styles.totalRow}>
-              <Text style={{ color: '#666' }}>VAT ({safeInvoice.vatRate}%):</Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-                {formatCurrency(safeTotals.vatAmount)}
-              </Text>
+          {isPackingList ? (
+            <View style={styles.grandTotal}>
+              <Text>Total Weight:</Text>
+              <Text>{formatWeight(totalWeight)} KG</Text>
             </View>
+          ) : (
+            <>
+              <View style={styles.totalRow}>
+                <Text style={{ color: '#666' }}>Subtotal:</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>
+                  {formatCurrency(safeTotals.subtotal)}
+                </Text>
+              </View>
+              {safeInvoice.vatEnabled && (
+                <View style={styles.totalRow}>
+                  <Text style={{ color: '#666' }}>VAT ({safeInvoice.vatRate}%):</Text>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>
+                    {formatCurrency(safeTotals.vatAmount)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.grandTotal}>
+                <Text>Total {safeInvoice.shippingType}:</Text>
+                <Text>{formatCurrency(safeTotals.total)}</Text>
+              </View>
+            </>
           )}
-          <View style={styles.grandTotal}>
-            <Text>Total {safeInvoice.shippingType}:</Text>
-            <Text>{formatCurrency(safeTotals.total)}</Text>
-          </View>
         </View>
 
         {/* Notes */}
@@ -283,17 +320,19 @@ const PDFDocument = ({ invoice, totals, supplier }) => {
         )}
 
         {/* Bank Details */}
-        <View style={styles.footer}>
-          <Text style={styles.sectionTitle}>Bank Details:</Text>
-          {safeInvoice.bankDetails.bankName && (
-            <Text style={styles.text}>Bank: {safeInvoice.bankDetails.bankName}</Text>
-          )}
-          <Text style={styles.text}>
-            Account Name: {safeInvoice.bankDetails.accountName || 'N/A'}
-          </Text>
-          <Text style={styles.text}>IBAN: {safeInvoice.bankDetails.iban || 'N/A'}</Text>
-          <Text style={styles.text}>BIC: {safeInvoice.bankDetails.bic || 'N/A'}</Text>
-        </View>
+        {!isPackingList && (
+          <View style={styles.footer}>
+            <Text style={styles.sectionTitle}>Bank Details:</Text>
+            {safeInvoice.bankDetails.bankName && (
+              <Text style={styles.text}>Bank: {safeInvoice.bankDetails.bankName}</Text>
+            )}
+            <Text style={styles.text}>
+              Account Name: {safeInvoice.bankDetails.accountName || 'N/A'}
+            </Text>
+            <Text style={styles.text}>IBAN: {safeInvoice.bankDetails.iban || 'N/A'}</Text>
+            <Text style={styles.text}>BIC: {safeInvoice.bankDetails.bic || 'N/A'}</Text>
+          </View>
+        )}
 
         {/* Stamp at bottom right */}
         {stampDataUrl && (
